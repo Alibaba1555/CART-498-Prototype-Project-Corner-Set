@@ -302,12 +302,54 @@ legend { padding: 0; margin-bottom: 15px; }
 
 .timer-ring {
   --progress: 100%;
-  width: 244px;
-  height: 244px;
-  margin: 30px auto;
+  width: min(244px, calc(100% - 72px));
+  height: auto;
+  aspect-ratio: 1;
+  margin: 62px auto;
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 0 28px rgba(84, 202, 221, .09);
   border-radius: 50%;
   background: conic-gradient(var(--cyan) var(--progress), #edf1f4 0);
   padding: 3px;
+}
+
+/* Decorative water-like contours; the actual progress ring stays still. */
+.timer-ring::before,
+.timer-ring::after {
+  content: "";
+  position: absolute;
+  inset: -25px;
+  z-index: -1;
+  pointer-events: none;
+  border: 1px solid rgba(85, 192, 181, .23);
+  border-radius: 39% 61% 43% 57% / 58% 40% 60% 42%;
+  background: conic-gradient(from 25deg,
+    rgba(94, 206, 222, .24),
+    rgba(143, 215, 165, .25) 30%,
+    rgba(241, 220, 128, .28) 55%,
+    rgba(142, 218, 187, .22) 78%,
+    rgba(94, 206, 222, .24));
+  box-shadow: 0 0 20px rgba(119, 205, 190, .08);
+  animation: timer-wave 16s linear infinite;
+}
+
+.timer-ring::after {
+  inset: -32px;
+  border-color: rgba(119, 200, 179, .19);
+  opacity: .65;
+  border-radius: 58% 42% 62% 38% / 44% 59% 41% 56%;
+  animation-duration: 23s;
+  animation-delay: -7s;
+  animation-direction: reverse;
+}
+
+@keyframes timer-wave {
+  0% { transform: rotate(0deg) scale(1); border-radius: 39% 61% 43% 57% / 58% 40% 60% 42%; }
+  25% { transform: rotate(90deg) scale(1.025); border-radius: 56% 44% 62% 38% / 41% 59% 43% 57%; }
+  50% { transform: rotate(180deg) scale(.98); border-radius: 63% 37% 46% 54% / 55% 38% 62% 45%; }
+  75% { transform: rotate(270deg) scale(1.015); border-radius: 43% 57% 37% 63% / 61% 46% 54% 39%; }
+  100% { transform: rotate(360deg) scale(1); border-radius: 39% 61% 43% 57% / 58% 40% 60% 42%; }
 }
 
 .timer-inner {
