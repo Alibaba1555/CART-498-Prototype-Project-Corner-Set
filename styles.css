@@ -86,6 +86,17 @@ button:disabled {
   font-weight: 650;
 }
 
+.brand-logo {
+  display: block;
+  width: 174px;
+  max-width: 100%;
+  height: auto;
+  max-height: 48px;
+  object-fit: contain;
+}
+
+.brand { max-width: calc(100% - 48px); }
+
 .brand small {
   display: block;
   font-size: 7px;
