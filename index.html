@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fa">
+  <title>Corner Set — Performer Prototype</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="workspace">
+    <aside class="intro">
+      <p class="eyebrow">CART 498 · PROTOTYPE 01</p>
+      <h1>Corner Set</h1>
+      <p>Tianshun Wu<br>Student ID: 40311042</p>
+      <div class="intro-line"></div>
+      <p class="small">
+        Performer experience<br>
+        + User experience design<br>
+      </p>
+    </aside>
+
+    <div class="app">
+      <header class="app-header">
+        <a class="brand" href="./index.html" aria-label="Corner Set home">
+          <span class="brand-mark" aria-hidden="true">CS</span>
+          <span>CORNER SET<small>LIVE, AROUND THE CORNER.</small></span>
+        </a>
+        <span class="avatar" aria-label="Demo performer Alex">A</span>
+      </header>
+
+      <div class="mode-bar">
+        <span>PERFORMER / ALEX</span>
+        <span id="connection">● ONLINE</span>
+      </div>
+
+      <p id="network-note" class="notice" role="status" hidden></p>
+      <p id="storage-note" class="notice" hidden>
+        Storage unavailable. Refreshing will reset this demo.
+      </p>
+
+      <main id="main">
+        <!-- HOME -->
+        <section id="home" class="screen">
+          <p class="eyebrow">YOUR CITY. YOUR STAGE.</p>
+          <h2 tabindex="-1">Ready when<br>you are.</h2>
+          <p class="muted">Turn a street corner into a live moment.</p>
+
+          <div class="map" role="img"
+               aria-label="Illustrative map showing an approximate public area, not an exact artist location">
+            <span class="map-park"></span>
+            <span class="map-label label-one">QUARTIER DES SPECTACLES</span>
+            <span class="map-label label-two">PLACE DES ARTS</span>
+            <span class="area-circle"></span>
+            <span class="area-caption">PUBLIC AREA</span>
+            <span class="map-caption">ILLUSTRATIVE MAP · NOT GPS</span>
+          </div>
+
+          <div class="location-row">
+            <span class="location-symbol" aria-hidden="true">◎</span>
+            <div>
+              <strong>Place des Arts</strong>
+              <p class="small muted">Approximate area · Demo location</p>
+            </div>
+          </div>
+
+          <button id="start" class="primary">
+            Start a set <span aria-hidden="true">↗</span>
+          </button>
+          <p class="footnote">Your public listing shows an area, not an exact pin.</p>
+        </section>
+
+        <!-- SETUP -->
+        <section id="setup" class="screen" hidden>
+          <button id="back" class="text-button">← Back</button>
+          <p class="eyebrow">BROADCAST SETUP</p>
+          <h2 tabindex="-1">Set the moment.</h2>
+          <p class="muted">Your profile is ready. Just choose your time.</p>
+
+          <div class="info-card">
+            <span class="eyebrow">01 / PUBLIC AREA</span>
+            <h3>Place des Arts</h3>
+            <p class="muted">A shared area around the plaza.</p>
+            <span class="tag">APPROXIMATE LOCATION</span>
+            <p class="small muted">
+              Demo location only. No precise artist coordinates are published.
+            </p>
+          </div>
+
+          <fieldset>
+            <legend class="eyebrow">02 / SET DURATION</legend>
+            <div class="duration-options">
+              <label>
+                <input type="radio" name="duration" value="30" checked>
+                <span><strong>30</strong>min</span>
+              </label>
+              <label>
+                <input type="radio" name="duration" value="45">
+                <span><strong>45</strong>min</span>
+              </label>
+              <label>
+                <input type="radio" name="duration" value="60">
+                <span><strong>60</strong>min</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="profile-row">
+            <span class="avatar">A</span>
+            <div>
+              <strong>Alex</strong>
+              <p class="small muted">Acoustic / Guitar & vocals</p>
+            </div>
+            <span class="tag">DEMO PROFILE</span>
+          </div>
+
+          <button id="publish" class="primary">
+            Go live <span aria-hidden="true">↗</span>
+          </button>
+          <p class="footnote">Prototype only. No real alert will be sent.</p>
+        </section>
+
+        <!-- LIVE -->
+        <section id="live" class="screen live-screen" hidden>
+          <div class="section-top">
+            <span id="live-state" class="tag">LIVE NOW</span>
+            <span class="small muted">SESSION / 01</span>
+          </div>
+
+          <h2 tabindex="-1">This is your moment.</h2>
+          <p class="muted">Alex · Place des Arts</p>
+
+          <div id="timer-ring" class="timer-ring">
+            <div class="timer-inner">
+              <span class="eyebrow">TIME REMAINING</span>
+              <span id="timer" class="timer" role="timer"
+                    aria-label="Time remaining">30:00</span>
+              <span id="end-time" class="small muted"></span>
+            </div>
+          </div>
+
+          <button id="extend" class="extend-button">
+            <span aria-hidden="true">＋</span> 15 MIN
+            <small>Keep the music going</small>
+          </button>
+
+          <div class="tip-card">
+            <div>
+              <span class="eyebrow">CURRENT TIP JAR</span>
+              <h3>Alex’s tip jar</h3>
+              <p class="small muted">External link · Not connected</p>
+            </div>
+            <span class="tip-symbol" aria-hidden="true">♡</span>
+          </div>
+
+          <p id="listing-status" class="footnote">
+            Your area is visible on the demo map.
+          </p>
+          <button id="end" class="danger-button">End set</button>
+        </section>
+
+        <!-- FINISHED -->
+        <section id="finished" class="screen finish-screen" hidden>
+          <div class="finish-symbol" aria-hidden="true">✓</div>
+          <p class="eyebrow">THAT’S A WRAP</p>
+          <h2 tabindex="-1">A little more music.<br>A different city.</h2>
+          <p id="finish-status" class="muted"></p>
+          <div class="info-card">
+            <span class="eyebrow">TIME PLAYED</span>
+            <h3 id="played">0 min</h3>
+            <p class="small muted">Thanks for sharing your corner.</p>
+          </div>
+          <button id="again" class="primary">Back to home ↗</button>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <span>CS / PERFORMER</span>
+        <span>FUNCTIONAL STUDY — 01</span>
+      </footer>
+    </div>
+
+    <aside class="demo-panel" aria-label="Prototype testing controls">
+      <p class="eyebrow">PROTOTYPE CONTROLS</p>
+      <label class="offline-control">
+        <input id="offline-toggle" type="checkbox">
+        Simulate offline
+      </label>
+      <button id="fast-forward" class="secondary">Jump to last 10 seconds</button>
+      <p class="small muted">
+        Controls for testing, not part of the final app.
+        Publishing and syncing are simulated.
+      </p>
+    </aside>
+  </div>
+
+  <dialog id="end-dialog" aria-labelledby="dialog-title">
+    <form method="dialog">
+      <p class="eyebrow">END PERFORMANCE</p>
+      <h2 id="dialog-title">Calling it a day?</h2>
+      <p id="end-warning" class="muted"></p>
+      <button class="primary" value="cancel">Keep playing</button>
+      <button class="danger-button" value="end">End set</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>
