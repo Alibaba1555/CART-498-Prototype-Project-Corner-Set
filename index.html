@@ -6,7 +6,9 @@
   <meta name="theme-color" content="#f5f7fa">
   <title>Corner Set — Performer Prototype</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="map3d.css">
   <script src="script.js" defer></script>
+  <script src="map3d.js" defer></script>
 </head>
 <body>
   <div class="workspace">
@@ -43,21 +45,32 @@
         <!-- HOME -->
         <section id="home" class="screen home-screen" aria-label="Home — performance area" tabindex="-1">
 
-          <div class="map" role="img"
-               aria-label="Illustrative map showing an approximate public area, not an exact artist location">
-            <span class="map-park"></span>
-            <span class="map-label label-one">QUARTIER DES SPECTACLES</span>
-            <span class="map-label label-two">PLACE DES ARTS</span>
-            <span class="area-circle"></span>
-            <span class="area-caption">PUBLIC AREA</span>
-            <span class="map-caption">ILLUSTRATIVE MAP · NOT GPS</span>
+          <div class="map map-3d" role="group" aria-label="Interactive illustrative 3D neighborhood">
+            <canvas id="city-canvas" class="city-canvas" tabindex="0" role="img"
+              aria-label="Rotatable 3D neighborhood. A red signal marks approximately floor four of the central building."
+              aria-describedby="map-instructions">Your browser does not support the 3D neighborhood preview.</canvas>
+            <div class="map-heading"><span>EXPLORE YOUR CORNER</span><strong>Place des Arts</strong></div>
+            <span class="map-dimension">3D VIEW</span>
+            <div id="floor-label" class="floor-label"><b>4F</b><span>Nearby music</span></div>
+            <div class="map-tools" role="group" aria-label="Map controls">
+              <button type="button" data-map="in" aria-label="Zoom in" title="Zoom in">+</button>
+              <button type="button" data-map="out" aria-label="Zoom out" title="Zoom out">−</button>
+              <button type="button" data-map="reset" aria-label="Reset map view" title="Reset view">↺</button>
+            </div>
+            <div class="map-legend">
+              <div class="map-signal-key"><i aria-hidden="true"></i>Approximate area · Floor 4</div>
+              <p>Signal stays visible through buildings · Not an exact pin</p>
+              <p class="map-help">Drag to orbit · Scroll / pinch to zoom</p>
+            </div>
+            <span id="map-instructions" class="sr-only">Drag to rotate. Shift-drag or use two fingers to pan. Scroll or pinch to zoom. Keyboard: arrow keys rotate, plus and minus zoom, Home resets. Illustrative buildings and example performance only; not a real listing.</span>
+            <p class="map-fallback">3D preview unavailable. Example music area: central building, floor 4. Approximate location only.</p>
           </div>
 
           <div class="location-row">
             <span class="location-symbol" aria-hidden="true">◎</span>
             <div>
               <strong>Place des Arts</strong>
-              <p class="small muted">Approximate area · Demo location</p>
+              <p class="small muted">Illustrative neighborhood · Demo signal on 4F</p>
             </div>
           </div>
 
@@ -80,7 +93,7 @@
             <p class="muted">A shared area around the plaza.</p>
             <span class="tag">APPROXIMATE LOCATION</span>
             <p class="small muted">
-              Demo location only. No precise artist coordinates are published.
+              Demo location only. 
             </p>
           </div>
 
