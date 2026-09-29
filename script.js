@@ -50,6 +50,7 @@ function save() {
 
 function showScreen(name, focus = true) {
   screen = name;
+  $("#open-profile").setAttribute("aria-expanded", String(name === "profile"));
 
   document.querySelectorAll(".screen").forEach((section) => {
     section.hidden = section.id !== name;
@@ -302,3 +303,43 @@ if (isActive()) {
 }
 
 connectionChanged();
+// Profile navigation preserves the current setup or running performance.
+let profileReturnScreen = "home";
+$("#open-profile").addEventListener("click", () => {
+  if (screen === "profile") { closeProfile(); return; }
+  profileReturnScreen = screen;
+  showScreen("profile");
+});
+function closeProfile() {
+  const destination = profileReturnScreen === "live" && !isActive()
+    ? (session ? "finished" : "home") : profileReturnScreen;
+  showScreen(destination);
+  $("#open-profile").focus({ preventScroll: true });
+}
+$("#profile-back").addEventListener("click", closeProfile);
+
+function applyTheme(theme) {
+  const night = theme === "night";
+  document.documentElement.dataset.theme = night ? "night" : "day";
+  $("#theme-toggle").setAttribute("aria-checked", String(night));
+  $("meta[name='theme-color']").content = night ? "#171f29" : "#f5f7fa";
+  const logo = $(".brand-logo");
+  logo.classList.remove("logo-fallback");
+  logo.src = night ? "assets/LOGO Night.png" : "assets/LOGO.png";
+  document.dispatchEvent(new Event("corner-theme-change"));
+}
+// Keep the daytime asset readable if the optional night asset is not installed yet.
+$(".brand-logo").addEventListener("error", () => {
+  const logo = $(".brand-logo");
+  if (document.documentElement.dataset.theme === "night" && !logo.classList.contains("logo-fallback")) {
+    logo.classList.add("logo-fallback");
+    logo.src = "assets/LOGO.png";
+  }
+});
+$("#theme-toggle").addEventListener("click", () => {
+  const theme = document.documentElement.dataset.theme === "night" ? "day" : "night";
+  applyTheme(theme);
+  try { localStorage.setItem("corner-set-theme", theme); }
+  catch { $("#storage-note").hidden = false; }
+});
+applyTheme(document.documentElement.dataset.theme || "day");

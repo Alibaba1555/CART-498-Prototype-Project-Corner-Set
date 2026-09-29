@@ -32,14 +32,23 @@
     const scale=Math.min(width/410,height/440)*view.zoom;
     return {x:width/2+cx*scale+view.panX,y:height*.51-cy*scale+view.panY,depth};
   }
+  let night = document.documentElement.dataset.theme === 'night';
+  const nightPalette = {
+    '#cdd2d5':'#697b8c', '#e0e4e6':'#465564', '#f1f3f4':'#617181',
+    '#d4dadd':'#394959', '#e6eaec':'#526373', '#ffffff':'#8292a0',
+    '#c9d0d4':'#81909d', '#bac5cc70':'#c7dcd64d', '#e8737930':'#ef87933d',
+    '#d87b8066':'#f49aa188', '#e4e8ea':'#303e4b', '#d6dcdf':'#536371',
+    '#f8f9fa':'#23303d', '#eef0f1':'#3b4a58', '#aab4bd28':'#070f1966'
+  };
+  const themed = color => night ? (nightPalette[color] || color) : color;
   function polygon(points,fill,stroke='#cdd2d5',line=0.7) {
     const pts=points.map(project);
     ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();
-    ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=line;ctx.stroke();}
+    ctx.fillStyle=themed(fill);ctx.fill();if(stroke){ctx.strokeStyle=themed(stroke);ctx.lineWidth=line;ctx.stroke();}
   }
   function line(points,color,lineWidth=1) {
     ctx.beginPath();points.map(project).forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-    ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.stroke();
+    ctx.strokeStyle=themed(color);ctx.lineWidth=lineWidth;ctx.stroke();
   }
   function boxFaces(b) {
     const x=b.x-b.w/2,X=b.x+b.w/2,z=b.z-b.d/2,Z=b.z+b.d/2,h=b.floors*FLOOR;
@@ -87,7 +96,7 @@
     for(let i=0;i<3;i++) {
       const phase=reduced.matches?(i+1)/3:((time/2600+i/3)%1);
       const r=(10+phase*58)*Math.min(width/390,1.2)*Math.sqrt(view.zoom);
-      const alpha=(1-phase)*.24;
+      const alpha=(1-phase)*(night?.38:.24);
       ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);
       ctx.fillStyle=`rgba(226,87,100,${alpha*.18})`;ctx.fill();
       ctx.strokeStyle=`rgba(226,87,100,${alpha})`;ctx.lineWidth=1.5;ctx.stroke();
@@ -133,5 +142,6 @@
   new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(!visible){cancelAnimationFrame(frame);frame=0;}else{resize();refresh();}}).observe(canvas);
   document.addEventListener('visibilitychange',refresh);
   reduced.addEventListener('change',refresh);
+  document.addEventListener('corner-theme-change',()=>{night=document.documentElement.dataset.theme==='night';refresh();});
   resize();
 })();
