@@ -91,21 +91,32 @@
       polygon([[x+7,1,z+8],[x+b.w+23,1,z+8],[x+b.w+23,1,z+b.d+21],[x+7,1,z+b.d+21]],'#aab4bd28',null);
     }
     BUILDINGS.flatMap(boxFaces).sort((a,b)=>a.depth-b.depth).forEach(f=>{polygon(f.p,f.color);faceDetails(f);});
-    // Billboard signal: deliberately visible through geometry; it is an area cue.
-    const p=project(TARGET);
-    for(let i=0;i<3;i++) {
-      const phase=reduced.matches?(i+1)/3:((time/2600+i/3)%1);
-      const r=(10+phase*58)*Math.min(width/390,1.2)*Math.sqrt(view.zoom);
-      const alpha=(1-phase)*(night?.38:.24);
-      ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(226,87,100,${alpha*.18})`;ctx.fill();
-      ctx.strokeStyle=`rgba(226,87,100,${alpha})`;ctx.lineWidth=1.5;ctx.stroke();
+    // Area signals remain visible through the illustrative buildings.
+    const audience=window.cornerAudience?.getState();
+    const targets=audience?.active?audience.gigs.map(g=>({point:g.point,id:g.id})):[{point:TARGET}];
+    for(const target of targets){
+      const p=project(target.point);
+      for(let i=0;i<3;i++) {
+        const phase=reduced.matches?(i+1)/3:((time/2600+i/3)%1);
+        const r=(10+phase*58)*Math.min(width/390,1.2)*Math.sqrt(view.zoom);
+        const alpha=(1-phase)*(night?.38:.24);
+        ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);
+        ctx.fillStyle=`rgba(226,87,100,${alpha*.18})`;ctx.fill();
+        ctx.strokeStyle=`rgba(226,87,100,${alpha})`;ctx.lineWidth=1.5;ctx.stroke();
+      }
+      ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fillStyle='#e56570';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke();
+      if(audience?.active){
+        const pin=audience.pins.get(target.id);pin.style.left=`${p.x}px`;pin.style.top=`${p.y}px`;
+      }else{
+        const label=document.getElementById('floor-label');
+        label.style.left=`${clamp(p.x+17,12,width-118)}px`;
+        label.style.top=`${clamp(p.y-24,65,height-120)}px`;
+      }
     }
-    ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fillStyle='#e56570';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke();
-    // Label follows the projected point, clamped inside the viewport.
-    const label=document.getElementById('floor-label');
-    label.style.left=`${clamp(p.x+17,12,width-118)}px`;
-    label.style.top=`${clamp(p.y-24,65,height-120)}px`;
+    if(audience?.active){
+      const p=project([audience.position.x,8,audience.position.z]);
+      audience.myPin.style.left=`${p.x}px`;audience.myPin.style.top=`${p.y}px`;
+    }
   }
   function loop(t){frame=0;if(!visible||document.hidden)return;draw(t);if(!reduced.matches)frame=requestAnimationFrame(loop);}
   function refresh(){if(!frame&&visible&&!document.hidden)frame=requestAnimationFrame(loop);}
@@ -142,6 +153,7 @@
   new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(!visible){cancelAnimationFrame(frame);frame=0;}else{resize();refresh();}}).observe(canvas);
   document.addEventListener('visibilitychange',refresh);
   reduced.addEventListener('change',refresh);
+  document.addEventListener('corner-map-update',refresh);
   document.addEventListener('corner-theme-change',()=>{night=document.documentElement.dataset.theme==='night';refresh();});
   resize();
 })();

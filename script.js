@@ -4,6 +4,7 @@ const $ = (selector) => document.querySelector(selector);
 const KEY = "corner-set-prototype-v1";
 
 let screen = "home";
+let userRole = "performer";
 let session = null;
 let pendingSync = false;
 let simulatedOffline = false;
@@ -106,7 +107,7 @@ function finish(automatic = false) {
     $("#end-dialog").close("cancel");
   }
 
-  showScreen("finished");
+  if (userRole === "performer") showScreen("finished");
 }
 
 function update() {
@@ -305,10 +306,25 @@ if (isActive()) {
 connectionChanged();
 // Profile navigation preserves the current setup or running performance.
 let profileReturnScreen = "home";
-$("#open-profile").addEventListener("click", () => {
+function openProfile() {
   if (screen === "profile") { closeProfile(); return; }
   profileReturnScreen = screen;
   showScreen("profile");
+}
+// Delay single tap so a double tap switches roles without flashing Profile.
+let avatarTapTimer;
+let lastAvatarTap = 0;
+$("#open-profile").style.touchAction = "manipulation";
+$("#open-profile").addEventListener("click", () => {
+  const now = performance.now();
+  if (avatarTapTimer && now - lastAvatarTap < 360) {
+    clearTimeout(avatarTapTimer); avatarTapTimer = null;
+    window.cornerAudience?.switchRole();
+  } else {
+    clearTimeout(avatarTapTimer);
+    lastAvatarTap = now;
+    avatarTapTimer = setTimeout(() => { avatarTapTimer = null; openProfile(); }, 360);
+  }
 });
 function closeProfile() {
   const destination = profileReturnScreen === "live" && !isActive()

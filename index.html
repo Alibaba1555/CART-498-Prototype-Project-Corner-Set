@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="map3d.css">
   <script src="script.js" defer></script>
+  <script src="audience.js" defer></script>
   <script src="map3d.js" defer></script>
 </head>
 <body>
@@ -33,7 +34,7 @@
       </header>
 
       <div class="mode-bar">
-        <span>PERFORMER / ALEX</span>
+        <span id="role-label">PERFORMER / ALEX</span>
         <span id="connection">● ONLINE</span>
       </div>
 
@@ -92,7 +93,20 @@
             <p class="map-fallback">3D preview unavailable. Example music area: central building, floor 4. Approximate location only.</p>
           </div>
 
-          <div class="location-row">
+          <div id="audience-home" hidden>
+            <div class="audience-heading"><div><p class="eyebrow">FOLLOW THE MUSIC</p><h3>Your next live moment.</h3></div><span class="you-key">● You</span></div>
+            <p id="nearby-status" class="small muted" role="status">Explore nearby performances.</p>
+            <div id="performance-card" class="performance-card">
+              <div class="section-top"><span id="audience-connection" class="tag">NEARBY</span><span id="audience-distance" class="small muted"></span></div>
+              <div class="profile-row"><span id="artist-avatar" class="avatar">A</span><div><h3 id="artist-name">Alex</h3><p id="artist-style" class="small muted"></p></div></div>
+              <p id="artist-location" class="small muted"></p>
+              <div class="audience-time"><span class="eyebrow">TIME REMAINING</span><strong id="audience-timer">20:00</strong></div>
+              <button id="tip-open" class="primary" type="button">Leave a tip <span aria-hidden="true">♡</span></button>
+              <p class="footnote">Connect nearby to support the performer.</p>
+            </div>
+            <div id="nearby-list" class="nearby-list" aria-label="Nearby performances"></div>
+          </div>
+          <div class="location-row performer-home">
             <span class="location-symbol" aria-hidden="true">◎</span>
             <div>
               <strong>Place des Arts</strong>
@@ -100,10 +114,10 @@
             </div>
           </div>
 
-          <button id="start" class="primary">
+          <button id="start" class="primary performer-home">
             Start a set <span aria-hidden="true">↗</span>
           </button>
-          <p class="footnote">Your public listing shows an area, not an exact pin.</p>
+          <p class="footnote performer-home">Your public listing shows an area, not an exact pin.</p>
         </section>
 
         <!-- SETUP -->
@@ -218,6 +232,16 @@
 
     <aside class="demo-panel" aria-label="Prototype testing controls">
       <p class="eyebrow">PROTOTYPE CONTROLS</p>
+      <p class="role-hint"><strong>Double-tap the avatar</strong><br>Switch Performer / Audience.<br><span class="small muted">Single tap opens your profile.</span></p>
+      <button id="switch-role" class="secondary" type="button">Switch to Audience</button>
+      <div id="audience-demo" hidden>
+        <p class="eyebrow">SIMULATE YOUR WALK</p>
+        <label class="small" for="walk-target">Walk toward</label>
+        <select id="walk-target"><option value="alex">Alex · Acoustic</option><option value="mika">Mika · Jazz</option><option value="leo">Leo · Electronic</option></select>
+        <button id="walk-start" class="secondary" type="button">Walk toward performance</button>
+        <button id="walk-reset" class="text-button" type="button">Reset my position</button>
+        <p class="small muted">Demo positions, not GPS. Enter a 45 m area to connect automatically; leave 65 m to disconnect. No audio streaming or real payment.</p>
+      </div>
       <label class="offline-control">
         <input id="offline-toggle" type="checkbox">
         Simulate offline
@@ -240,6 +264,20 @@
     </form>
   </dialog>
 
+  <dialog id="tip-dialog" aria-labelledby="tip-title">
+    <form method="dialog">
+      <p class="eyebrow">A LITTLE APPRECIATION</p><h2 id="tip-title">Support Alex.</h2>
+      <p class="muted">Choose a demo tip amount in CAD.</p>
+      <fieldset><legend class="sr-only">Tip amount</legend><div class="duration-options">
+        <label><input type="radio" name="tip" value="3" checked><span>$3</span></label>
+        <label><input type="radio" name="tip" value="5"><span>$5</span></label>
+        <label><input type="radio" name="tip" value="10"><span>$10</span></label>
+      </div></fieldset>
+      <p class="small muted">Prototype only. No money will be charged.</p>
+      <button id="tip-confirm" class="primary" type="button">Send demo tip</button>
+      <button class="danger-button" value="cancel">Cancel</button>
+    </form>
+  </dialog>
   <div id="toast" class="toast" role="status" hidden></div>
 </body>
 </html>

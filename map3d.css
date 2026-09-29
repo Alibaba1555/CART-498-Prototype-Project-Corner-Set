@@ -42,3 +42,10 @@
 :root[data-theme="night"] .floor-label b { color: #ffadb5; }
 :root[data-theme="night"] .map-signal-key { color: #d0dbe5; }
 :root[data-theme="night"] .map-help { color: #acbac8 !important; }
+
+.performance-pin { position: absolute; width: 44px; height: 44px; border: 0; padding: 0; border-radius: 50%; background: transparent; transform: translate(-50%, -50%); }
+.performance-pin:active:not(:disabled) { transform: translate(-50%, -50%); }
+.performance-pin span { display: block; width: 12px; height: 12px; margin: auto; background: #e56570; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 5px #e5657025; }
+.performance-pin[aria-pressed="true"] span { box-shadow: 0 0 0 7px #e5657040; }
+.my-map-position { position: absolute; transform: translate(-50%, -50%); pointer-events: none; width: 18px; height: 18px; background: #2987ef; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 0 9px #2987ef25, 0 2px 6px #0003; }
+.my-map-position::after { content: 'You'; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--surface); color: var(--text); padding: 3px 7px; font-size: 10px; border-radius: 9px; }

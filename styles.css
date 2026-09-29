@@ -501,3 +501,75 @@ dialog button { margin-top: 12px; }
 :root[data-theme="night"] dialog::backdrop { background: #060c16a6; }
 :root[data-theme="night"] .toast { background: #dce7ee; color: #172731; }
 :root[data-theme="night"] .logo-fallback { filter: brightness(0) invert(1); }
+
+/* Audience shares the same type, spacing, cards and theme tokens. */
+.role-hint { font-size: 12px; line-height: 1.8; }
+.role-hint strong { color: var(--accent); font-weight: 500; }
+#audience-demo { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 14px; }
+#walk-target { width: 100%; padding: 12px 8px; margin: 8px 0 12px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: inherit; font-size: 12px; }
+#walk-reset { margin: 8px 0 0; }
+.audience-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; }
+.audience-heading h3 { font-size: 21px; font-weight: 300; margin: 8px 0; }
+.you-key { color: #287edb; font-size: 11px; white-space: nowrap; }
+.performance-card { border: 1px solid var(--line); padding: 18px; margin: 18px 0; border-radius: 12px; }
+.performance-card.is-connected { border-color: var(--accent); }
+.performance-card .profile-row { padding: 12px 0; }
+.performance-card h3 { margin: 0; }
+.audience-time { display: flex; align-items: center; justify-content: space-between; margin: 22px 0; }
+.audience-time strong { font-size: 30px; font-weight: 300; font-variant-numeric: tabular-nums; }
+.nearby-list { display: grid; gap: 8px; margin: 16px 0; }
+.nearby-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 13px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 8px; text-align: left; font-size: 12px; }
+.nearby-item[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); }
+.nearby-item small { color: var(--muted); }
+#tip-dialog .primary { justify-content: center; }
+:root[data-theme="night"] .you-key { color: #80b8ff; }
+
+@property --role-reveal {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+/* Avatar-origin role transition; scoped to the phone, not the demo controls. */
+:root { --role-wash: #e3f5f8; --role-wave: #62bfd13b; }
+:root[data-theme="night"] { --role-wash: #223844; --role-wave: #7dd4df30; }
+.app { view-transition-name: role-surface; }
+.role-transitioning .app { pointer-events: none; }
+.role-transitioning .screen { animation: none; }
+::view-transition-group(role-surface) { animation-duration: 760ms; animation-timing-function: cubic-bezier(.4,0,.2,1); overflow: clip; }
+::view-transition-old(role-surface),
+::view-transition-new(role-surface) { mix-blend-mode: normal; height: 100%; object-fit: cover; object-position: top; }
+::view-transition-old(role-surface) { animation: none; z-index: 1; }
+::view-transition-new(role-surface) { z-index: 2; mask-image: radial-gradient(circle at var(--role-x) var(--role-y), #000 calc(var(--role-reveal) - 26px), #000b calc(var(--role-reveal) - 16px), #0003 calc(var(--role-reveal) - 5px), transparent var(--role-reveal)); animation: role-circle-reveal 760ms cubic-bezier(.4,0,.2,1) both; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+@keyframes role-circle-reveal {
+  0% { --role-reveal: 0px; clip-path: circle(0px at var(--role-x) var(--role-y)); filter: saturate(.8) brightness(1.06); }
+  100% { --role-reveal: var(--role-radius); clip-path: circle(var(--role-radius) at var(--role-x) var(--role-y)); filter: none; }
+}
+.role-ripple-curtain { position: fixed; overflow: hidden; z-index: 1000; pointer-events: auto; contain: paint; }
+.role-ripple-disk { position: absolute; border-radius: 50%; background: var(--role-wash); transform: translate(-50%,-50%) scale(0); box-shadow: 0 0 0 18px var(--role-wave), 0 0 0 40px var(--role-wave); }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(role-surface), ::view-transition-old(role-surface), ::view-transition-new(role-surface) { animation: none !important; }
+}
+
+
+
+.role-transitioning .app {
+  pointer-events: none;
+}
+
+.role-transitioning .screen {
+  animation: none;
+}
+
+.role-ink-curtain {
+  position: fixed;
+  display: block;
+  z-index: 1000;
+  overflow: hidden;
+  pointer-events: auto;
+  contain: paint;
+}
+
+.role-ink-curtain path {
+  vector-effect: non-scaling-stroke;
+}
