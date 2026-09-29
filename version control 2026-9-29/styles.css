@@ -142,7 +142,7 @@ button:disabled {
 }
 
 #connection { color: var(--accent); }
-main { flex: 1; display: flex; flex-direction: column; }
+main { flex: 1; }
 .screen { padding: 28px 24px 24px; animation: enter .22s ease-out; }
 
 .eyebrow {
@@ -166,22 +166,6 @@ p { line-height: 1.6; }
 .small { font-size: 11px; margin: 5px 0; }
 .footnote { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.6; }
 
-/* Home: map grows into the former introduction area. */
-.home-screen {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding-top: 0;
-}
-
-.home-screen .map {
-  flex: 1 0 420px;
-  margin-top: 0;
-  border-top: 0;
-}
-
-.home-screen > :not(.map) { flex-shrink: 0; }
-
 .map {
   height: 215px;
   position: relative;
@@ -199,8 +183,8 @@ p { line-height: 1.6; }
   width: 140px;
   height: 84px;
   background: #dceae2;
-  top: calc(50% - 42px);
-  left: calc(50% - 70px);
+  top: 65px;
+  left: 108px;
   transform: rotate(22deg);
 }
 
@@ -211,7 +195,7 @@ p { line-height: 1.6; }
   border: 1px solid #39b4ca;
   border-radius: 50%;
   background: #63d3e52b;
-  top: calc(50% - 65px);
+  top: 36px;
   left: calc(50% - 65px);
   box-shadow: 0 0 0 12px #63d3e50a;
 }
@@ -222,8 +206,7 @@ p { line-height: 1.6; }
 
 .area-caption {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 94px;
   width: 100%;
   text-align: center;
   font-size: 9px;
@@ -447,7 +430,6 @@ dialog button { margin-top: 12px; }
 @media (max-width: 680px) {
   .workspace { display: block; padding: 0; }
   .app { width: 100%; max-width: 430px; margin: auto; min-height: 100svh; border: 0; }
-  .home-screen .map { flex-basis: clamp(280px, 52svh, 420px); }
   .demo-panel { max-width: 430px; margin: auto; padding: 24px; }
 }
 

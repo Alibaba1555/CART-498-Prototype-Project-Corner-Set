@@ -58,8 +58,7 @@ function showScreen(name, focus = true) {
   update();
 
   if (focus) {
-    const target = document.querySelector(`#${name} h2`) || document.getElementById(name);
-    target?.focus({ preventScroll: true });
+    document.querySelector(`#${name} h2`)?.focus();
   }
 }
 
