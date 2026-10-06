@@ -1,4 +1,4 @@
-/* Fictional nearby performances and proximity simulation; no GPS or payment API. */
+/* Fictional performances and proximity simulation. No GPS or payment API. */
 (() => {
   const born = Date.now();
 
@@ -29,6 +29,15 @@
       point: [112, 8, -60],
       ground: [112, -60],
       minutes: 45
+    },
+    {
+      id: 'nina',
+      name: 'Nina',
+      style: 'Indie Pop \u00b7 Vocals & keys',
+      place: 'North plaza \u00b7 Beside the steps',
+      point: [150, 8, -42],
+      ground: [150, -42],
+      minutes: 30
     }
   ].map(g => ({
     ...g,
@@ -50,13 +59,19 @@
       tags: ['Electronic', 'Lo-fi', 'Live Loops'],
       bio: 'hey, leo here. mostly making beats in my room. figured I\u2019d try outside for once lol. come hang if you\u2019re around.',
       instagram: 'corner_set_leo_demo'
+    },
+    nina: {
+      tags: ['Indie Pop', 'R&B', 'Keys'],
+      bio: 'hi :) brought my keyboard out today. a few covers, a few songs I haven\u2019t finished yet. requests welcome, no promises tho',
+      instagram: 'corner_set_nina_demo'
     }
   };
 
   function fillMusicianProfile(root, id) {
-    if (root.dataset.musician === id) return;
+    if (!root || root.dataset.musician === id) return;
 
     const profile = musicianProfiles[id];
+    if (!profile) return;
 
     const tags = profile.tags.map(label => {
       const tag = document.createElement('li');
@@ -82,10 +97,7 @@
     root.dataset.musician = id;
   }
 
-  fillMusicianProfile(
-    document.querySelector('#own-musician-profile'),
-    'alex'
-  );
+  fillMusicianProfile($('#own-musician-profile'), 'alex');
 
   let position = { x: -170, z: 160 };
   let selected = 'alex';
@@ -94,8 +106,12 @@
   let walkTimer;
   let tipArtist = null;
   let performerScreen = 'home';
+  let filterRadius = Infinity;
 
   const host = $('.map-3d');
+  const card = $('#performance-card');
+  const pins = new Map();
+  const rows = new Map();
   const myPin = document.createElement('div');
 
   myPin.className = 'my-map-position';
@@ -103,24 +119,39 @@
   myPin.setAttribute('aria-hidden', 'true');
   host.append(myPin);
 
-  const pins = new Map();
+  const distance = g => Math.hypot(
+    position.x - g.ground[0],
+    position.z - g.ground[1]
+  );
+
+  const available = g => Boolean(g) && Date.now() < g.endsAt;
+
+  function filteredGigs() {
+    return gigs.filter(g =>
+      available(g) && distance(g) <= filterRadius
+    );
+  }
+
+  function refreshMap() {
+    document.dispatchEvent(new Event('corner-map-update'));
+  }
 
   for (const g of gigs) {
-    const b = document.createElement('button');
+    const pin = document.createElement('button');
 
-    b.type = 'button';
-    b.className = 'performance-pin';
-    b.hidden = true;
-    b.innerHTML = '<span aria-hidden="true"></span>';
+    pin.type = 'button';
+    pin.className = 'performance-pin';
+    pin.hidden = true;
+    pin.innerHTML = '<span aria-hidden="true"></span>';
 
-    b.setAttribute(
+    pin.setAttribute(
       'aria-label',
       `${g.name}, ${g.style}, approximate performance area`
     );
 
-    b.addEventListener('click', () => select(g.id));
-    host.append(b);
-    pins.set(g.id, b);
+    pin.addEventListener('click', () => select(g.id));
+    host.append(pin);
+    pins.set(g.id, pin);
 
     const row = document.createElement('button');
 
@@ -138,20 +169,234 @@
 
     row.addEventListener('click', () => select(g.id));
     $('#nearby-list').append(row);
+    rows.set(g.id, row);
   }
 
-  const distance = g =>
-    Math.hypot(
-      position.x - g.ground[0],
-      position.z - g.ground[1]
-    );
+  const walkTarget = $('#walk-target');
 
-  const available = g => Date.now() < g.endsAt;
+  if (!walkTarget.querySelector('option[value="nina"]')) {
+    const option = document.createElement('option');
+    option.value = 'nina';
+    option.textContent = 'Nina';
+    walkTarget.append(option);
+  }
+
+  const rangeStyles = document.createElement('style');
+
+  rangeStyles.textContent = `
+    .audience-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 2px 10px;
+}
+
+.audience-range-label {
+  flex-shrink: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.audience-range-slider {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.audience-range-slider::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.audience-range-slider::-webkit-slider-thumb {
+  width: 13px;
+  height: 13px;
+  margin-top: -5px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.audience-range-slider::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.audience-range-slider::-moz-range-progress {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.audience-range-slider::-moz-range-thumb {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.audience-range-value {
+  min-width: 42px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keep the result count available without using visual space. */
+.audience-range-summary {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+    .audience-empty {
+      margin: 18px 0;
+      padding: 24px 16px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .audience-empty p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .audience-empty button {
+      min-height: 40px;
+      padding: 8px 18px;
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--accent);
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+  `;
+
+  document.head.append(rangeStyles);
+
+  const rangePanel = document.createElement('div');
+  rangePanel.className = 'audience-range';
+  rangePanel.hidden = true;
+
+  rangePanel.innerHTML = `
+  <label class="audience-range-label" for="audience-radius">
+    RANGE
+  </label>
+
+  <input
+    id="audience-radius"
+    class="audience-range-slider"
+    type="range"
+    min="50"
+    max="350"
+    step="10"
+    value="350"
+    aria-valuetext="All distances"
+  >
+
+  <span class="audience-range-value" aria-hidden="true">All</span>
+  <p class="audience-range-summary" role="status"></p>
+`;
+
+  host.before(rangePanel);
+
+  const emptyPanel = document.createElement('div');
+  emptyPanel.className = 'audience-empty';
+  emptyPanel.hidden = true;
+
+  emptyPanel.innerHTML = `
+    <p></p>
+    <button type="button">Show all</button>
+  `;
+
+  card.after(emptyPanel);
+
+  function setRadius(value) {
+  const numeric = Number(value);
+  const isAll = value === 'all' || numeric > 300;
+
+  filterRadius = isAll
+    ? Infinity
+    : Math.max(50, Math.min(300, numeric));
+
+  const slider = rangePanel.querySelector('.audience-range-slider');
+  const label = rangePanel.querySelector('.audience-range-value');
+
+  slider.value = String(isAll ? 350 : filterRadius);
+  label.textContent = isAll ? 'All' : `${filterRadius}m`;
+
+  slider.setAttribute(
+    'aria-valuetext',
+    isAll ? 'All distances' : `Within ${filterRadius} meters`
+  );
+
+  render();
+}
+
+const radiusSlider =
+  rangePanel.querySelector('.audience-range-slider');
+
+radiusSlider.addEventListener('input', () => {
+  const value = Number(radiusSlider.value);
+
+  // The final section of the slider represents All.
+  filterRadius = value > 300 ? Infinity : value;
+
+  const isAll = !Number.isFinite(filterRadius);
+
+  rangePanel.querySelector('.audience-range-value').textContent =
+    isAll ? 'All' : `${filterRadius}m`;
+
+  radiusSlider.setAttribute(
+    'aria-valuetext',
+    isAll ? 'All distances' : `Within ${filterRadius} meters`
+  );
+
+  render();
+});
+
+radiusSlider.addEventListener('change', () => {
+  // Snap the All section to the right endpoint after release.
+  if (!Number.isFinite(filterRadius)) {
+    radiusSlider.value = '350';
+  }
+});
+
+  emptyPanel.querySelector('button').addEventListener('click', () => {
+    setRadius('all');
+  });
 
   function select(id) {
+    if (!filteredGigs().some(g => g.id === id)) return;
     selected = id;
     render();
-    document.dispatchEvent(new Event('corner-map-update'));
   }
 
   function stopWalk() {
@@ -163,14 +408,12 @@
   function performRoleSwitch() {
     stopWalk();
 
-    if ($('#tip-dialog').open) {
-      $('#tip-dialog').close();
-    }
+    if ($('#tip-dialog').open) $('#tip-dialog').close();
+    tipArtist = null;
 
     if (userRole === 'performer') {
       performerScreen =
         screen === 'profile' ? profileReturnScreen : screen;
-
       userRole = 'audience';
     } else {
       userRole = 'performer';
@@ -178,8 +421,8 @@
 
     const audience = userRole === 'audience';
 
-    document.querySelectorAll('.performer-home').forEach(e => {
-      e.hidden = audience;
+    document.querySelectorAll('.performer-home').forEach(element => {
+      element.hidden = audience;
     });
 
     $('#audience-home').hidden = !audience;
@@ -198,9 +441,8 @@
       `Open Alex\u2019s ${audience ? 'audience' : 'performer'} profile. Double tap to switch role.`
     );
 
-    $('.profile-identity .tag').textContent = audience
-      ? 'AUDIENCE'
-      : 'PERFORMER';
+    $('.profile-identity .tag').textContent =
+      audience ? 'AUDIENCE' : 'PERFORMER';
 
     $('#floor-label').hidden = audience;
 
@@ -220,7 +462,7 @@
     );
 
     $('#map-instructions').textContent =
-      'Drag to rotate. Shift-drag or use two fingers to pan. Scroll or pinch to zoom. Arrow keys rotate; plus and minus zoom; Home resets. Fictional example locations. Nearby performances are also listed below the map. Use prototype walk controls to simulate proximity.';
+      'Drag to rotate. Shift-drag or use two fingers to pan. Scroll or pinch to zoom. Arrow keys rotate; plus and minus zoom; Home resets. Fictional example locations. Distance filters use simulated straight-line distances. Nearby performances are also listed below the map. Use prototype walk controls to simulate proximity.';
 
     $('#fast-forward').hidden = audience;
     connected = null;
@@ -235,7 +477,6 @@
 
     showScreen(destination);
     render();
-    document.dispatchEvent(new Event('corner-map-update'));
 
     toast(
       audience
@@ -245,11 +486,15 @@
   }
 
   function render() {
-    if (userRole !== 'audience') {
+    const isAudience = userRole === 'audience';
+    rangePanel.hidden = !isAudience;
+
+    if (!isAudience) {
       myPin.hidden = true;
-      pins.forEach(b => {
-        b.hidden = true;
+      pins.forEach(pin => {
+        pin.hidden = true;
       });
+      refreshMap();
       return;
     }
 
@@ -257,9 +502,13 @@
     const prior = connected;
 
     if (connected) {
-      const g = gigs.find(g => g.id === connected);
+      const current = gigs.find(g => g.id === connected);
 
-      if (!available(g) || distance(g) > 65 || isOffline()) {
+      if (
+        !available(current) ||
+        distance(current) > 65 ||
+        isOffline()
+      ) {
         connected = null;
       }
     }
@@ -276,95 +525,131 @@
     }
 
     if (prior !== connected) {
-      if ($('#tip-dialog').open) {
-        $('#tip-dialog').close();
-        tipArtist = null;
-      }
+      if ($('#tip-dialog').open) $('#tip-dialog').close();
+      tipArtist = null;
 
       if (connected) {
-        toast(
-          `Connected to ${gigs.find(g => g.id === connected).name}\u2019s set.`
-        );
+        const name = gigs.find(g => g.id === connected).name;
+        toast(`Connected to ${name}\u2019s set.`);
       } else if (prior) {
         toast('You left the performance area.');
       }
     }
 
-    const g = gigs.find(g => g.id === selected);
-    const isConnected = connected === g.id;
+    const visibleGigs = filteredGigs();
+    const visibleIds = new Set(visibleGigs.map(g => g.id));
 
-    $('#nearby-status').textContent = isOffline()
+    if (visibleGigs.length && !visibleIds.has(selected)) {
+      selected = visibleGigs
+        .slice()
+        .sort((a, b) => distance(a) - distance(b))[0].id;
+    }
+
+    const count = visibleGigs.length;
+    const scope = Number.isFinite(filterRadius)
+      ? `within ${filterRadius}m`
+      : 'in this demo area';
+
+    const summary =
+      `${count} live ${count === 1 ? 'set' : 'sets'} ${scope}`;
+
+    const summaryElement =
+      rangePanel.querySelector('.audience-range-summary');
+
+    if (summaryElement.textContent !== summary) {
+      summaryElement.textContent = summary;
+    }
+
+    if (card.hidden !== (count === 0)) {
+      card.hidden = count === 0;
+    }
+
+    emptyPanel.hidden = count !== 0;
+
+    emptyPanel.querySelector('p').textContent =
+      Number.isFinite(filterRadius)
+        ? `No live sets within ${filterRadius}m. Try a wider range.`
+        : 'No live sets right now.';
+
+    emptyPanel.querySelector('button').hidden =
+      !Number.isFinite(filterRadius);
+
+    const nearbyMessage = isOffline()
       ? 'Offline \u2014 nearby connections are unavailable.'
       : connected
         ? `You\u2019re near ${gigs.find(g => g.id === connected).name}\u2019s set. Connected automatically.`
         : 'Move closer to a red area to connect automatically.';
 
-    fillMusicianProfile(
-      document.querySelector('#artist-micro-profile'),
-      g.id
-    );
+    if ($('#nearby-status').textContent !== nearbyMessage) {
+      $('#nearby-status').textContent = nearbyMessage;
+    }
 
-    $('#artist-name').textContent = g.name;
-    $('#artist-avatar').textContent = g.name[0];
-    $('#artist-style').textContent = g.style;
-    $('#artist-location').textContent = g.place;
+    if (count > 0) {
+      const g = gigs.find(g => g.id === selected);
+      const isConnected = connected === g.id;
 
-    $('#audience-distance').textContent =
-      `\u2248 ${Math.round(distance(g))} m away`;
+      fillMusicianProfile($('#artist-micro-profile'), g.id);
 
-    $('#audience-connection').textContent = !available(g)
-      ? 'SET ENDED'
-      : isConnected
-        ? 'CONNECTED'
-        : 'NEARBY';
+      $('#artist-name').textContent = g.name;
+      $('#artist-avatar').textContent = g.name[0];
+      $('#artist-style').textContent = g.style;
+      $('#artist-location').textContent = g.place;
 
-    $('#audience-timer').textContent =
-      formatTime(g.endsAt - Date.now());
+      $('#audience-distance').textContent =
+        `\u2248 ${Math.round(distance(g))} m away`;
 
-    $('#performance-card').classList.toggle(
-      'is-connected',
-      isConnected
-    );
+      $('#audience-connection').textContent =
+        isConnected ? 'CONNECTED' : 'NEARBY';
 
-    $('#tip-open').disabled =
-      !isConnected || !available(g) || isOffline();
+      $('#audience-timer').textContent =
+        formatTime(g.endsAt - Date.now());
 
-    $('#performance-card .footnote').textContent = isConnected
-      ? 'Enjoy the moment. Tips are optional.'
-      : 'Connect nearby to support the performer.';
+      card.classList.toggle('is-connected', isConnected);
 
-    document.querySelectorAll('.nearby-item').forEach(row => {
-      const item = gigs.find(g => g.id === row.dataset.gig);
+      $('#tip-open').disabled = !isConnected || isOffline();
 
-      row.setAttribute(
-        'aria-pressed',
-        String(item.id === selected)
-      );
+      $('#performance-card .footnote').textContent = isConnected
+        ? 'Enjoy the moment. Tips are optional.'
+        : 'Connect nearby to support the performer.';
+    } else {
+      $('#tip-open').disabled = true;
+    }
+
+    if (
+      $('#tip-dialog').open &&
+      (!visibleIds.has(tipArtist) || selected !== tipArtist)
+    ) {
+      $('#tip-dialog').close();
+      tipArtist = null;
+    }
+
+    rows.forEach((row, id) => {
+      const item = gigs.find(g => g.id === id);
+
+      row.hidden = !visibleIds.has(id);
+      row.setAttribute('aria-pressed', String(id === selected));
 
       row.querySelector('.gig-distance').textContent =
-        available(item)
-          ? `\u2248 ${Math.round(distance(item))} m`
-          : 'Ended';
+        `\u2248 ${Math.round(distance(item))} m`;
     });
 
-    pins.forEach((b, id) => {
-      b.hidden = !available(gigs.find(g => g.id === id));
-      b.setAttribute('aria-pressed', String(id === selected));
+    pins.forEach((pin, id) => {
+      pin.hidden = !visibleIds.has(id);
+      pin.setAttribute('aria-pressed', String(id === selected));
     });
 
     myPin.hidden = false;
+    refreshMap();
   }
 
-  // Circle wipe starts at the avatar, like an expanding game-scene ripple.
+  // Avatar-origin ripple transition.
   let roleTransitionBusy = false;
 
   async function switchRole() {
     if (roleTransitionBusy) return;
 
     if (
-      window.matchMedia?.(
-        '(prefers-reduced-motion: reduce)'
-      ).matches
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     ) {
       performRoleSwitch();
       return;
@@ -372,8 +657,8 @@
 
     roleTransitionBusy = true;
 
-    const app = document.querySelector('.app');
-    const avatar = document.querySelector('#open-profile');
+    const app = $('.app');
+    const avatar = $('#open-profile');
     const box = app.getBoundingClientRect();
     const avatarBox = avatar.getBoundingClientRect();
 
@@ -391,11 +676,8 @@
 
     const width = box.width;
     const height = window.innerHeight;
-    const centerX =
-      avatarBox.left + avatarBox.width / 2 - box.left;
-    const centerY =
-      avatarBox.top + avatarBox.height / 2;
-
+    const centerX = avatarBox.left + avatarBox.width / 2 - box.left;
+    const centerY = avatarBox.top + avatarBox.height / 2;
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
     canvas.width = Math.ceil(width * dpr);
@@ -419,19 +701,12 @@
     ctx.fillStyle = '#fff';
 
     const radius = Math.hypot(
-      Math.max(
-        Math.abs(centerX),
-        Math.abs(width - centerX)
-      ),
-      Math.max(
-        Math.abs(centerY),
-        Math.abs(height - centerY)
-      )
+      Math.max(Math.abs(centerX), Math.abs(width - centerX)),
+      Math.max(Math.abs(centerY), Math.abs(height - centerY))
     );
 
     const samples = Array.from({ length: 100 }, (_, i) => {
-      const angle = (i / 100) * Math.PI * 2;
-
+      const angle = i / 100 * Math.PI * 2;
       return {
         angle,
         cos: Math.cos(angle),
@@ -471,11 +746,8 @@
         const x = centerX + point.cos * rr;
         const y = centerY + point.sin * rr;
 
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       });
 
       ctx.closePath();
@@ -486,19 +758,12 @@
 
       ctx.clearRect(0, 0, width, height);
       ctx.save();
-
       ctx.beginPath();
-      ctx.rect(
-        0,
-        clipTop,
-        width,
-        Math.max(0, clipBottom - clipTop)
-      );
+      ctx.rect(0, clipTop, width, Math.max(0, clipBottom - clipTop));
       ctx.clip();
 
       if (elapsed < HALF) {
-        const progress = elapsed / HALF;
-        const outerRadius = progress * (radius + 190);
+        const outerRadius = elapsed / HALF * (radius + 190);
 
         for (let i = 0; i < 5; i++) {
           const r = outerRadius - i * 38;
@@ -509,19 +774,10 @@
           ctx.stroke();
         }
       } else {
-        const progress = Math.min(
-          1,
-          (elapsed - HALF) / HALF
-        );
-
+        const progress = Math.min(1, (elapsed - HALF) / HALF);
         const openingRadius = progress * (radius + 30);
 
-        ctx.fillRect(
-          0,
-          clipTop,
-          width,
-          clipBottom - clipTop
-        );
+        ctx.fillRect(0, clipTop, width, clipBottom - clipTop);
 
         if (openingRadius > 0) {
           ctx.globalCompositeOperation = 'destination-out';
@@ -531,11 +787,7 @@
           ctx.globalCompositeOperation = 'source-over';
 
           for (let i = 0; i < 5; i++) {
-            wavePath(
-              openingRadius + i * 38,
-              time,
-              i * 0.22
-            );
+            wavePath(openingRadius + i * 38, time, i * 0.22);
             ctx.stroke();
           }
         }
@@ -554,9 +806,7 @@
 
     document.body.append(canvas);
     app.setAttribute('aria-busy', 'true');
-    document.documentElement.classList.add(
-      'role-transitioning'
-    );
+    document.documentElement.classList.add('role-transitioning');
 
     try {
       await new Promise(resolve => {
@@ -573,9 +823,7 @@
               return;
             }
 
-            if (elapsed >= HALF && !changed) {
-              changePage();
-            }
+            if (elapsed >= HALF && !changed) changePage();
 
             draw(elapsed);
             frame = requestAnimationFrame(tick);
@@ -605,12 +853,8 @@
 
       changePage();
       canvas.remove();
-
       app.removeAttribute('aria-busy');
-      document.documentElement.classList.remove(
-        'role-transitioning'
-      );
-
+      document.documentElement.classList.remove('role-transitioning');
       roleTransitionBusy = false;
     }
   }
@@ -623,20 +867,26 @@
       return;
     }
 
-    const target = gigs.find(
-      g => g.id === $('#walk-target').value
-    );
+    const target = gigs.find(g => g.id === walkTarget.value);
 
     if (!available(target)) {
       toast('That set has ended. Choose another performance.');
       return;
     }
 
-    select(target.id);
+    if (distance(target) <= filterRadius) selected = target.id;
+
     walking = true;
     $('#walk-start').textContent = 'Stop walking';
+    render();
 
     walkTimer = setInterval(() => {
+      if (!available(target)) {
+        stopWalk();
+        render();
+        return;
+      }
+
       const dx = target.ground[0] - position.x;
       const dz = target.ground[1] - position.z;
       const d = Math.hypot(dx, dz);
@@ -648,9 +898,7 @@
       }
 
       if (d <= 4) stopWalk();
-
       render();
-      document.dispatchEvent(new Event('corner-map-update'));
     }, 80);
   });
 
@@ -658,16 +906,13 @@
     stopWalk();
     position = { x: -170, z: 160 };
     render();
-    document.dispatchEvent(new Event('corner-map-update'));
   });
 
   $('#tip-open').addEventListener('click', () => {
     render();
-
-    if ($('#tip-open').disabled) return;
+    if ($('#tip-open').disabled || card.hidden) return;
 
     tipArtist = connected;
-
     $('#tip-title').textContent =
       `Support ${gigs.find(g => g.id === tipArtist).name}.`;
 
@@ -681,6 +926,8 @@
     if (
       !id ||
       connected !== id ||
+      selected !== id ||
+      card.hidden ||
       isOffline() ||
       !available(gigs.find(g => g.id === id))
     ) {
@@ -690,7 +937,9 @@
 
     const amount = document.querySelector(
       'input[name="tip"]:checked'
-    ).value;
+    )?.value;
+
+    if (!amount) return;
 
     $('#tip-dialog').close();
 
@@ -709,7 +958,7 @@
     switchRole,
     getState: () => ({
       active: userRole === 'audience',
-      gigs: gigs.filter(available),
+      gigs: filteredGigs(),
       position,
       pins,
       myPin
@@ -721,16 +970,18 @@
   render();
 })();
 
-/* Alex's 15-second audio preview. */
+/* Alex's preview: source seconds 11 through 26. */
 (() => {
   const profile = document.querySelector('#artist-micro-profile');
   const home = document.querySelector('#home');
   const audienceHome = document.querySelector('#audience-home');
+  const card = document.querySelector('#performance-card');
 
-  if (!profile || !home || !audienceHome) return;
+  if (!profile || !home || !audienceHome || !card) return;
 
   const START = 11;
   const LENGTH = 15;
+  const END = START + LENGTH;
   const audio = new Audio('assets/ALEX.mp3');
 
   audio.preload = 'none';
@@ -739,6 +990,7 @@
   let ended = false;
   let requestId = 0;
   let ticker = null;
+  let metadataPromise = null;
 
   const style = document.createElement('style');
 
@@ -851,6 +1103,7 @@
         <p class="alex-preview-label">15-SECOND PREVIEW</p>
         <p class="alex-preview-title">A little of Alex's sound</p>
       </div>
+
       <button
         class="alex-preview-button"
         type="button"
@@ -895,6 +1148,7 @@
   function isVisible() {
     return (
       profile.dataset.musician === 'alex' &&
+      !card.hidden &&
       !home.hidden &&
       !audienceHome.hidden &&
       !document.hidden
@@ -933,21 +1187,23 @@
     audio.pause();
     clearTicker();
 
-    if (audio.readyState >= 1) {
-      audio.currentTime = START;
-    }
-
     ended = false;
     button.disabled = false;
     status.textContent = 'Tap to listen';
+
+    // Seek on the next play, avoiding hidden-page seek events.
+    needsRestart = true;
     updateProgress(0);
     updateButton(false);
   }
+
+  let needsRestart = true;
 
   function finish() {
     audio.pause();
     clearTicker();
     ended = true;
+    needsRestart = true;
     updateProgress(LENGTH);
     updateButton(false);
     status.textContent = 'Play it again?';
@@ -955,9 +1211,11 @@
 
   function checkProgress() {
     if (!isVisible()) {
-      reset();
+      if (!audio.paused || loading || ticker !== null) reset();
       return;
     }
+
+    if (needsRestart && audio.paused) return;
 
     const elapsed = audio.currentTime - START;
 
@@ -969,9 +1227,13 @@
   }
 
   function waitForMetadata() {
-    if (audio.readyState >= 1) return Promise.resolve();
+    if (audio.readyState >= 1 && !audio.error) {
+      return Promise.resolve();
+    }
 
-    return new Promise((resolve, reject) => {
+    if (metadataPromise) return metadataPromise;
+
+    metadataPromise = new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         cleanup();
         reject(new Error('Audio load timed out.'));
@@ -996,11 +1258,15 @@
       audio.addEventListener('loadedmetadata', onReady);
       audio.addEventListener('error', onError);
       audio.load();
+    }).finally(() => {
+      metadataPromise = null;
     });
+
+    return metadataPromise;
   }
 
   button.addEventListener('click', async () => {
-    if (loading) return;
+    if (loading || !isVisible()) return;
 
     if (!audio.paused) {
       audio.pause();
@@ -1020,24 +1286,29 @@
 
       if (currentRequest !== requestId || !isVisible()) return;
 
-      if (!Number.isFinite(audio.duration) ||
-          audio.duration < START + LENGTH) {
+      if (!Number.isFinite(audio.duration) || audio.duration < END) {
         throw new Error('Audio must contain the full preview.');
       }
 
       if (
+        needsRestart ||
         ended ||
         audio.currentTime < START ||
-        audio.currentTime >= START + LENGTH
+        audio.currentTime >= END
       ) {
         audio.currentTime = START;
+        updateProgress(0);
       }
 
       ended = false;
+      needsRestart = false;
+
       await audio.play();
 
-      if (currentRequest !== requestId || !isVisible()) {
-        audio.pause();
+      if (currentRequest !== requestId) return;
+
+      if (!isVisible()) {
+        reset();
         return;
       }
 
@@ -1063,26 +1334,31 @@
   audio.addEventListener('timeupdate', checkProgress);
 
   audio.addEventListener('ended', () => {
-    if (audio.currentTime >= START + LENGTH - 0.1) {
+    if (!isVisible()) return;
+
+    if (audio.currentTime >= END - 0.1) {
       finish();
     } else {
       clearTicker();
+      ended = true;
+      needsRestart = true;
       updateButton(false);
       status.textContent = 'Audio ended early. Tap to retry.';
-      ended = true;
     }
   });
 
   audio.addEventListener('error', () => {
     audio.pause();
     clearTicker();
-    updateButton(false);
-    status.textContent = 'Could not load audio. Tap to retry.';
+
+    if (isVisible()) {
+      updateButton(false);
+      status.textContent = 'Could not load audio. Tap to retry.';
+    }
   });
 
   function syncVisibility() {
     panel.hidden = profile.dataset.musician !== 'alex';
-
     if (!isVisible()) reset();
   }
 
@@ -1093,15 +1369,12 @@
     attributeFilter: ['data-musician']
   });
 
-  observer.observe(home, {
-    attributes: true,
-    attributeFilter: ['hidden']
-  });
-
-  observer.observe(audienceHome, {
-    attributes: true,
-    attributeFilter: ['hidden']
-  });
+  for (const element of [home, audienceHome, card]) {
+    observer.observe(element, {
+      attributes: true,
+      attributeFilter: ['hidden']
+    });
+  }
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) reset();

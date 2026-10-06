@@ -79,6 +79,172 @@
       line([[a[0],72,a[2]],[b[0],72,b[2]]],'#d87b8066',1);
     }
   }
+  const clusterStyle = document.createElement('style');
+
+clusterStyle.textContent = `
+  .map-cluster {
+    position: absolute;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    transform: translate(-50%, -50%);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #d94f60;
+    color: #fff;
+    box-shadow: 0 0 0 7px #e565701c;
+    font: 600 14px "Segoe UI", Arial, sans-serif;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .map-cluster:hover {
+    background: #be3e50;
+    box-shadow: 0 0 0 10px #e5657026;
+  }
+
+  .map-cluster:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 6px;
+  }
+`;
+
+document.head.append(clusterStyle);
+
+const clusterButton = document.createElement('button');
+clusterButton.type = 'button';
+clusterButton.className = 'map-cluster';
+clusterButton.textContent = '2';
+clusterButton.hidden = true;
+
+clusterButton.setAttribute(
+  'aria-label',
+  '2 nearby performances: Leo and Nina. Zoom in to explore.'
+);
+
+host.append(clusterButton);
+
+let clusterPoint = null;
+let focusFrame = 0;
+
+function stopMapFocus() {
+  cancelAnimationFrame(focusFrame);
+  focusFrame = 0;
+}
+
+clusterButton.addEventListener('click', () => {
+  if (!clusterPoint) return;
+
+  stopMapFocus();
+
+  const point = [...clusterPoint];
+  const start = { ...view };
+  const targetZoom = 2.2;
+
+  view.zoom = targetZoom;
+  view.panX = 0;
+  view.panY = 0;
+
+  const projected = project(point);
+
+  const destination = {
+    ...start,
+    zoom: targetZoom,
+    panX: width / 2 - projected.x,
+    panY: height * 0.46 - projected.y
+  };
+
+  view = { ...start };
+
+  if (reduced.matches) {
+    view = destination;
+    refresh();
+    return;
+  }
+
+  const started = performance.now();
+
+  function animate(now) {
+    const progress = Math.min(1, (now - started) / 500);
+    const ease = 1 - Math.pow(1 - progress, 3);
+
+    view.zoom =
+      start.zoom + (destination.zoom - start.zoom) * ease;
+
+    view.panX =
+      start.panX + (destination.panX - start.panX) * ease;
+
+    view.panY =
+      start.panY + (destination.panY - start.panY) * ease;
+
+    refresh();
+
+    if (progress < 1) {
+      focusFrame = requestAnimationFrame(animate);
+    } else {
+      focusFrame = 0;
+    }
+  }
+
+  focusFrame = requestAnimationFrame(animate);
+});
+
+canvas.addEventListener('pointerdown', stopMapFocus);
+canvas.addEventListener('wheel', stopMapFocus, { passive: true });
+canvas.addEventListener('keydown', stopMapFocus);
+
+host.querySelectorAll('[data-map]').forEach(button => {
+  button.addEventListener('click', stopMapFocus, true);
+});
+
+function getMapTargets(audience) {
+  clusterButton.hidden = true;
+  clusterPoint = null;
+
+  if (!audience?.active) {
+    return [{ point: TARGET }];
+  }
+
+  audience.pins.forEach(pin => {
+    pin.style.visibility = 'hidden';
+  });
+
+  const targets = audience.gigs.map(g => ({
+    point: g.point,
+    id: g.id
+  }));
+
+  const leo = targets.find(target => target.id === 'leo');
+  const nina = targets.find(target => target.id === 'nina');
+
+  if (!leo || !nina) return targets;
+
+  const a = project(leo.point);
+  const b = project(nina.point);
+  const screenDistance = Math.hypot(a.x - b.x, a.y - b.y);
+
+  if (view.zoom >= 1.75 || screenDistance > 56) {
+    return targets;
+  }
+
+  clusterPoint = leo.point.map(
+    (value, index) => (value + nina.point[index]) / 2
+  );
+
+  return [
+    ...targets.filter(target =>
+      target.id !== 'leo' && target.id !== 'nina'
+    ),
+    {
+      id: 'leo-nina-cluster',
+      point: clusterPoint,
+      cluster: true
+    }
+  ];
+}
   function draw(time=0) {
     ctx.clearRect(0,0,width,height);
     polygon([[-207,-4,-203],[207,-4,-203],[207,-4,203],[-207,-4,203]],'#e4e8ea','#d6dcdf');
@@ -93,7 +259,7 @@
     BUILDINGS.flatMap(boxFaces).sort((a,b)=>a.depth-b.depth).forEach(f=>{polygon(f.p,f.color);faceDetails(f);});
     // Area signals remain visible through the illustrative buildings.
     const audience=window.cornerAudience?.getState();
-    const targets=audience?.active?audience.gigs.map(g=>({point:g.point,id:g.id})):[{point:TARGET}];
+    const targets = getMapTargets(audience);
     for(const target of targets){
       const p=project(target.point);
       for(let i=0;i<3;i++) {
@@ -105,9 +271,21 @@
         ctx.strokeStyle=`rgba(226,87,100,${alpha})`;ctx.lineWidth=1.5;ctx.stroke();
       }
       ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fillStyle='#e56570';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke();
-      if(audience?.active){
-        const pin=audience.pins.get(target.id);pin.style.left=`${p.x}px`;pin.style.top=`${p.y}px`;
-      }else{
+      if (audience?.active) {
+  if (target.cluster) {
+    clusterButton.hidden = false;
+    clusterButton.style.left = `${p.x}px`;
+    clusterButton.style.top = `${p.y}px`;
+  } else {
+    const pin = audience.pins.get(target.id);
+
+    if (pin) {
+      pin.style.visibility = 'visible';
+      pin.style.left = `${p.x}px`;
+      pin.style.top = `${p.y}px`;
+    }
+  }
+} else {
         const label=document.getElementById('floor-label');
         label.style.left=`${clamp(p.x+17,12,width-118)}px`;
         label.style.top=`${clamp(p.y-24,65,height-120)}px`;
