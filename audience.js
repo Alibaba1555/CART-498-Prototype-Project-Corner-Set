@@ -1072,6 +1072,467 @@ radiusSlider.addEventListener('change', () => {
     if (document.hidden) stopWalk();
   });
 
+    /* Moment Ticket */
+  const mtStorageKey = 'corner-set-moments-v1';
+  let mtTickets = [];
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(mtStorageKey) || '[]');
+    if (Array.isArray(saved)) {
+      mtTickets = saved.filter(ticket =>
+        ticket &&
+        ['id', 'name', 'style', 'place', 'date'].every(
+          key => typeof ticket[key] === 'string'
+        ) &&
+        Number.isFinite(Date.parse(ticket.date))
+      );
+    }
+  } catch {}
+
+  const mtDay = new Date(born).toLocaleDateString('en-CA');
+  const mtId = gig => `demo-${mtDay}-${gig.id}`;
+
+  const mtStyles = document.createElement('style');
+  mtStyles.textContent = `
+    .mt-save {
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .mt-help {
+      margin: 9px 0 0;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .mt-collection {
+      margin-top: 28px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+    }
+
+    .mt-collection h3 {
+      margin: 6px 0 12px;
+    }
+
+    .mt-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .mt-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      padding: 16px;
+      text-align: left;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-left: 3px solid #e8463e;
+    }
+
+    .mt-row small {
+      display: block;
+      margin-top: 5px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    #mt-dialog {
+      width: min(390px, calc(100vw - 32px));
+      max-height: 90vh;
+      max-height: 90dvh;
+      padding: 22px;
+      overflow: auto;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+    }
+
+    #mt-dialog::backdrop {
+      background: rgba(0, 0, 0, .65);
+      backdrop-filter: blur(5px);
+    }
+
+    .mt-printer {
+      margin-top: 18px;
+      padding: 12px 4px 10px;
+      overflow: hidden;
+      border-top: 5px solid var(--text);
+    }
+
+    .mt-ticket {
+      position: relative;
+      padding: 25px 22px 22px;
+      color: #202020;
+      background: #f6f2e9;
+      box-shadow: 0 5px 12px #0002;
+      text-align: left;
+    }
+
+    .mt-ticket.mt-print {
+      animation: mt-print .9s cubic-bezier(.2, .65, .25, 1) both;
+    }
+
+    .mt-ticket::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      bottom: -4px;
+      left: 0;
+      height: 8px;
+      background:
+        radial-gradient(
+          circle at 5px 8px,
+          transparent 4px,
+          #f6f2e9 4.5px
+        ) 0 0 / 10px 8px repeat-x;
+    }
+
+    .mt-label {
+      margin: 0;
+      font: 10px monospace;
+      letter-spacing: 1.5px;
+      line-height: 1.6;
+    }
+
+    .mt-brand {
+      margin: 7px 0 20px;
+      font-size: 23px;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .mt-art {
+      position: relative;
+      height: 95px;
+      overflow: hidden;
+      border: 1px solid #222;
+      background:
+        repeating-linear-gradient(
+          28deg,
+          transparent 0 20px,
+          #222 21px 22px,
+          transparent 23px 40px
+        ),
+        repeating-linear-gradient(
+          118deg,
+          transparent 0 35px,
+          #222 36px 37px,
+          transparent 38px 60px
+        );
+    }
+
+    .mt-art::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: calc(50% - 26px);
+      width: 52px;
+      height: 52px;
+      background: #e8463e;
+      border: 12px solid #f6f2e9;
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 1px #e8463e,
+        0 0 0 12px #e8463e22;
+    }
+
+    .mt-ticket h3 {
+      margin: 20px 0 5px;
+      font-size: 42px;
+      line-height: 1.1;
+      letter-spacing: -2px;
+    }
+
+    .mt-style,
+    .mt-place {
+      margin: 4px 0;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .mt-details {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 20px -22px 15px;
+      padding: 15px 22px;
+      border-top: 1px dashed #999;
+      border-bottom: 1px dashed #999;
+      font: 11px monospace;
+      line-height: 1.8;
+    }
+
+    .mt-stamp {
+      display: inline-block;
+      margin-bottom: 13px;
+      padding: 5px 8px;
+      color: #c83830;
+      border: 2px solid currentColor;
+      transform: rotate(-6deg);
+      font: bold 11px monospace;
+    }
+
+    .mt-caption {
+      margin: 5px 0 0;
+      font: 11px monospace;
+      line-height: 1.6;
+    }
+
+    #mt-close {
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    @keyframes mt-print {
+      from { transform: translateY(-105%); }
+      to { transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mt-ticket.mt-print {
+        animation: none;
+      }
+    }
+  `;
+  document.head.append(mtStyles);
+
+  const mtSave = document.createElement('button');
+  mtSave.type = 'button';
+  mtSave.className = 'secondary mt-save';
+  mtSave.textContent = 'Save this moment ↗';
+
+  const mtHelp = document.createElement('p');
+  mtHelp.className = 'mt-help';
+
+  card.append(mtSave, mtHelp);
+
+  const mtCollection = document.createElement('section');
+  mtCollection.className = 'mt-collection';
+  mtCollection.innerHTML = `
+    <p class="eyebrow">YOUR CORNER COLLECTION</p>
+    <h3>My Moments <span class="mt-count"></span></h3>
+    <p class="small muted">
+      Little reminders of the music you found.
+    </p>
+    <div class="mt-list"></div>
+    <p class="small muted">Saved in this browser only.</p>
+  `;
+  $('#profile').append(mtCollection);
+
+  const mtDialog = document.createElement('dialog');
+  mtDialog.id = 'mt-dialog';
+  mtDialog.setAttribute('aria-labelledby', 'mt-title');
+  mtDialog.innerHTML = `
+    <p class="eyebrow" id="mt-title">MOMENT TICKET</p>
+
+    <div class="mt-printer">
+      <article class="mt-ticket">
+        <p class="mt-label">MOMENT TICKET</p>
+        <p class="mt-brand">CORNER SET ↗</p>
+
+        <div class="mt-art" aria-hidden="true"></div>
+
+        <h3 class="mt-name"></h3>
+        <p class="mt-style"></p>
+        <p class="mt-place"></p>
+
+        <div class="mt-details">
+          <span class="mt-date"></span>
+          <span class="mt-time"></span>
+        </div>
+
+        <span class="mt-stamp">I WAS HERE</span>
+
+        <p class="mt-caption">
+          xxxxxxxxxxxxxxxxxxxxxxxxx
+        </p>
+        <p class="mt-caption">
+          DEMO KEEPSAKE · NOT AN ADMISSION TICKET
+        </p>
+      </article>
+    </div>
+
+    <p class="mt-help mt-result" role="status"></p>
+
+    <button type="button" class="primary" id="mt-close">
+      Keep exploring ↗
+    </button>
+  `;
+  document.body.append(mtDialog);
+
+  let mtReturnFocus = null;
+
+  mtDialog.querySelector('#mt-close').addEventListener('click', () => {
+    mtDialog.close();
+  });
+
+  mtDialog.addEventListener('close', () => {
+    if (mtReturnFocus && mtReturnFocus.isConnected) {
+      mtReturnFocus.focus({ preventScroll: true });
+    }
+  });
+
+  function mtOpen(ticket, fresh = false) {
+    const date = new Date(ticket.date);
+
+    mtDialog.querySelector('.mt-name').textContent = ticket.name;
+    mtDialog.querySelector('.mt-style').textContent = ticket.style;
+    mtDialog.querySelector('.mt-place').textContent =
+      ticket.place.split(' · ')[0] + ' · Approximate area';
+
+    mtDialog.querySelector('.mt-date').textContent =
+      date.toLocaleDateString('en-CA', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+    mtDialog.querySelector('.mt-time').textContent =
+      date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+    mtDialog.querySelector('.mt-result').textContent =
+      ticket.temporary
+        ? 'Saved for this visit only. Browser storage is unavailable.'
+        : 'Collected in My Moments.';
+
+    const paper = mtDialog.querySelector('.mt-ticket');
+    paper.classList.remove('mt-print');
+
+    mtReturnFocus = document.activeElement;
+    mtDialog.showModal();
+
+    if (fresh) {
+      void paper.offsetWidth;
+      paper.classList.add('mt-print');
+    }
+
+    mtDialog.querySelector('#mt-close').focus({
+      preventScroll: true
+    });
+  }
+
+  function mtRenderCollection() {
+    mtCollection.querySelector('.mt-count').textContent =
+      `(${mtTickets.length})`;
+
+    const list = mtCollection.querySelector('.mt-list');
+    list.replaceChildren();
+
+    if (!mtTickets.length) {
+      const empty = document.createElement('p');
+      empty.className = 'small muted';
+      empty.textContent =
+        'Your collection starts at the next corner. Connect to a nearby set and save your first moment.';
+      list.append(empty);
+    }
+
+    for (const ticket of mtTickets) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mt-row';
+
+      const label = document.createElement('span');
+      const name = document.createElement('strong');
+      const detail = document.createElement('small');
+      const arrow = document.createElement('span');
+
+      name.textContent = ticket.name;
+      detail.textContent =
+        `${new Date(ticket.date).toLocaleDateString()} · ` +
+        ticket.place.split(' · ')[0];
+
+      arrow.textContent = '↗';
+      arrow.setAttribute('aria-hidden', 'true');
+
+      label.append(name, detail);
+      button.append(label, arrow);
+      button.addEventListener('click', () => mtOpen(ticket));
+
+      list.append(button);
+    }
+  }
+
+  function mtRefresh() {
+    const gig = gigs.find(item => item.id === selected);
+    const existing = gig &&
+      mtTickets.find(ticket => ticket.id === mtId(gig));
+
+    const canCollect =
+      userRole === 'audience' &&
+      gig &&
+      connected === gig.id &&
+      available(gig) &&
+      distance(gig) <= 65 &&
+      !isOffline();
+
+    mtSave.disabled = !existing && !canCollect;
+
+    mtSave.textContent = existing
+      ? 'View your Moment Ticket ↗'
+      : 'Save this moment ↗';
+
+    mtHelp.textContent = existing
+      ? 'One set. One keepsake. Yours to revisit.'
+      : canCollect
+        ? 'A free keepsake of this set. No tip needed.'
+        : 'Connect nearby to collect a ticket.';
+
+    mtCollection.hidden = userRole !== 'audience';
+  }
+
+  mtSave.addEventListener('click', () => {
+    mtRefresh();
+    if (mtSave.disabled) return;
+
+    const gig = gigs.find(item => item.id === selected);
+    if (!gig) return;
+
+    const existing = mtTickets.find(
+      ticket => ticket.id === mtId(gig)
+    );
+
+    if (existing) {
+      mtOpen(existing);
+      return;
+    }
+
+    const ticket = {
+      id: mtId(gig),
+      name: gig.name,
+      style: gig.style,
+      place: gig.place,
+      date: new Date().toISOString()
+    };
+
+    mtTickets.unshift(ticket);
+
+    try {
+      localStorage.setItem(mtStorageKey, JSON.stringify(mtTickets));
+    } catch {
+      ticket.temporary = true;
+    }
+
+    mtRenderCollection();
+    mtRefresh();
+    mtOpen(ticket, true);
+  });
+
+    mtRenderCollection();
+  mtRefresh();
+
   window.cornerAudience = {
     switchRole,
     getState: () => ({
@@ -1084,8 +1545,13 @@ radiusSlider.addEventListener('change', () => {
     render
   };
 
-  setInterval(render, 500);
+  setInterval(() => {
+    render();
+    mtRefresh();
+  }, 500);
+
   render();
+  mtRefresh();
 })();
 
 /* Alex's preview: source seconds 11 through 26. */
