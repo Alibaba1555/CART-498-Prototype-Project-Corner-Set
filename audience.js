@@ -1372,6 +1372,142 @@ radiusSlider.addEventListener('change', () => {
 
   let mtReturnFocus = null;
 
+    let mtCurrentTicketId = null;
+  let mtDeletePending = false;
+
+  const mtDelete = document.createElement('button');
+  mtDelete.type = 'button';
+  mtDelete.className = 'text-button mt-delete';
+  mtDelete.textContent = 'Delete ticket';
+  mtDialog.append(mtDelete);
+
+  function mtResetDelete() {
+    mtDeletePending = false;
+    mtDelete.textContent = 'Delete ticket';
+    mtDelete.classList.remove('is-confirming');
+  }
+
+  mtDelete.addEventListener('click', () => {
+    if (!mtCurrentTicketId) return;
+
+    if (!mtDeletePending) {
+      mtDeletePending = true;
+      mtDelete.textContent = 'Confirm delete?';
+      mtDelete.classList.add('is-confirming');
+
+      mtDialog.querySelector('.mt-result').textContent =
+        'Remove this ticket from My Moments? Click again to confirm.';
+      return;
+    }
+
+    const remaining = mtTickets.filter(
+      ticket => ticket.id !== mtCurrentTicketId
+    );
+
+    const current = mtTickets.find(
+      ticket => ticket.id === mtCurrentTicketId
+    );
+
+    try {
+      localStorage.setItem(mtStorageKey, JSON.stringify(remaining));
+    } catch {
+      if (!current?.temporary) {
+        mtResetDelete();
+        mtDialog.querySelector('.mt-result').textContent =
+          'Could not delete the saved ticket. Please try again.';
+        return;
+      }
+    }
+
+    mtTickets = remaining;
+    mtCurrentTicketId = null;
+
+    mtRenderCollection();
+    mtRefresh();
+    mtDialog.close();
+
+    toast('Moment Ticket deleted.');
+  });
+
+  mtDialog.addEventListener('close', mtResetDelete);
+
+  const mtPrintStyles = document.createElement('style');
+  mtPrintStyles.textContent = `
+    #mt-dialog .mt-printer {
+      position: relative;
+      isolation: isolate;
+      padding-top: 14px;
+      border-top: 0;
+    }
+
+    #mt-dialog .mt-printer::before {
+      content: '';
+      position: absolute;
+      z-index: 3;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 12px;
+      border-radius: 8px;
+      background: #171717;
+      box-shadow:
+        inset 0 3px 4px #000,
+        0 2px 0 #ffffff20;
+      pointer-events: none;
+    }
+
+    #mt-dialog .mt-printer::after {
+      content: '';
+      position: absolute;
+      z-index: 2;
+      top: 9px;
+      right: 4px;
+      left: 4px;
+      height: 20px;
+      background: linear-gradient(#0005, transparent);
+      pointer-events: none;
+    }
+
+    #mt-dialog .mt-ticket.mt-print {
+      animation: mt-paper-feed 2.4s linear both;
+      will-change: transform;
+    }
+
+    #mt-dialog .mt-delete {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      padding: 10px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    #mt-dialog .mt-delete:hover,
+    #mt-dialog .mt-delete.is-confirming {
+      color: #d94840;
+    }
+
+    @keyframes mt-paper-feed {
+      0%   { transform: translateY(-110%); }
+      8%   { transform: translateY(-110%); }
+      25%  { transform: translateY(-79%); }
+      29%  { transform: translateY(-79%); }
+      47%  { transform: translateY(-49%); }
+      51%  { transform: translateY(-49%); }
+      70%  { transform: translateY(-22%); }
+      74%  { transform: translateY(-22%); }
+      95%  { transform: translateY(0); }
+      100% { transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #mt-dialog .mt-ticket.mt-print {
+        animation: none;
+      }
+    }
+  `;
+  document.head.append(mtPrintStyles);
+
   mtDialog.querySelector('#mt-close').addEventListener('click', () => {
     mtDialog.close();
   });
@@ -1382,11 +1518,15 @@ radiusSlider.addEventListener('change', () => {
     }
   });
 
-  function mtOpen(ticket, fresh = false) {
+    function mtOpen(ticket, fresh = false) {
     const date = new Date(ticket.date);
+
+    mtCurrentTicketId = ticket.id;
+    mtResetDelete();
 
     mtDialog.querySelector('.mt-name').textContent = ticket.name;
     mtDialog.querySelector('.mt-style').textContent = ticket.style;
+
     mtDialog.querySelector('.mt-place').textContent =
       ticket.place.split(' · ')[0] + ' · Approximate area';
 
@@ -1403,25 +1543,47 @@ radiusSlider.addEventListener('change', () => {
         minute: '2-digit'
       });
 
-    mtDialog.querySelector('.mt-result').textContent =
-      ticket.temporary
-        ? 'Saved for this visit only. Browser storage is unavailable.'
-        : 'Collected in My Moments.';
-
     const paper = mtDialog.querySelector('.mt-ticket');
+    const result = mtDialog.querySelector('.mt-result');
+    const closeButton = mtDialog.querySelector('#mt-close');
+
+    const savedMessage = ticket.temporary
+      ? 'Saved for this visit only. Browser storage is unavailable.'
+      : 'Collected in My Moments.';
+
+    const shouldAnimate =
+      fresh &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    paper.onanimationend = null;
     paper.classList.remove('mt-print');
+
+    mtDelete.hidden = shouldAnimate;
+    result.textContent = shouldAnimate
+      ? 'Printing your moment…'
+      : savedMessage;
 
     mtReturnFocus = document.activeElement;
     mtDialog.showModal();
+    mtDialog.scrollTop = 0;
 
-    if (fresh) {
+    closeButton.focus({ preventScroll: true });
+
+    if (shouldAnimate) {
       void paper.offsetWidth;
+
+      paper.onanimationend = event => {
+        if (event.animationName !== 'mt-paper-feed') return;
+
+        paper.classList.remove('mt-print');
+        paper.onanimationend = null;
+
+        result.textContent = savedMessage;
+        mtDelete.hidden = false;
+      };
+
       paper.classList.add('mt-print');
     }
-
-    mtDialog.querySelector('#mt-close').focus({
-      preventScroll: true
-    });
   }
 
   function mtRenderCollection() {
@@ -1485,7 +1647,7 @@ radiusSlider.addEventListener('change', () => {
       : 'Save this moment ↗';
 
     mtHelp.textContent = existing
-      ? 'One set. One keepsake. Yours to revisit.'
+      ? 'Save this moment to view your ticket.'
       : canCollect
         ? 'A free keepsake of this set. No tip needed.'
         : 'Connect nearby to collect a ticket.';
