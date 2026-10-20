@@ -498,30 +498,27 @@ radiusSlider.addEventListener('change', () => {
       return;
     }
 
-    const live = gigs.filter(available);
+        const live = gigs.filter(available);
     const prior = connected;
 
-    if (connected) {
-      const current = gigs.find(g => g.id === connected);
+    const nearest = live
+      .slice()
+      .sort((a, b) => distance(a) - distance(b))[0];
 
-      if (
-        !available(current) ||
-        distance(current) > 65 ||
-        isOffline()
-      ) {
+    if (isOffline()) {
+      connected = null;
+    } else if (nearest && distance(nearest) <= 45) {
+      connected = nearest.id;
+    } else {
+      const current = live.find(g => g.id === connected);
+
+      if (!current || distance(current) > 65) {
         connected = null;
       }
     }
 
-    if (!connected && !isOffline()) {
-      const nearest = live
-        .slice()
-        .sort((a, b) => distance(a) - distance(b))[0];
-
-      if (nearest && distance(nearest) <= 45) {
-        connected = nearest.id;
-        selected = nearest.id;
-      }
+    if (connected && connected !== prior) {
+      selected = connected;
     }
 
     if (prior !== connected) {
