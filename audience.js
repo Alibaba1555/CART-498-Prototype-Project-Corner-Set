@@ -908,46 +908,164 @@ radiusSlider.addEventListener('change', () => {
     render();
   });
 
+  // Local interaction prototype: no payment or biometric APIs are used.
+  const tipDialog = $('#tip-dialog');
+  const tipForm = tipDialog.querySelector('form');
+  const applePayStyle = document.createElement('style');
+  applePayStyle.textContent = `
+    #tip-confirm { background:#080808; color:#fff; border:1px solid #777; border-radius:12px; font-size:20px; }
+    #tip-dialog .wallet-demo[hidden], #tip-dialog form[hidden] { display:none; }
+    #tip-dialog .wallet-demo { width:100%; text-align:left; }
+    .wallet-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .wallet-brand { font-size:27px; font-weight:650; letter-spacing:-1px; }
+    .wallet-badge { font-size:9px; letter-spacing:1.4px; color:var(--muted); border:1px solid var(--line); padding:5px 8px; border-radius:20px; }
+    .wallet-card { display:flex; align-items:center; gap:12px; margin:25px 0 20px; padding:16px; border:1px solid var(--line); border-radius:14px; background:var(--soft); }
+    .wallet-card-icon { display:grid; place-items:center; width:51px; height:34px; border-radius:7px; background:linear-gradient(135deg,#263247,#65778d); color:#fff; font-size:11px; }
+    .wallet-card strong,.wallet-card small { display:block; font-size:12px; line-height:1.8; }
+    .wallet-card small { color:var(--muted); font-size:10px; }
+    .wallet-total { display:flex; justify-content:space-between; gap:15px; padding:15px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .wallet-total small { display:block; margin-top:5px; color:var(--muted); }
+    .wallet-total > strong { font-size:23px; white-space:nowrap; }
+    #wallet-touch { position:relative; display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; padding:25px 12px; background:transparent; color:var(--text); border:1px solid transparent; border-radius:14px; touch-action:manipulation; user-select:none; }
+    #wallet-touch:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+    #wallet-touch:disabled { opacity:1; cursor:default; }
+    .wallet-face { position:relative; display:grid; place-items:center; width:66px; height:66px; border:2px solid currentColor; border-radius:19px; color:var(--accent); overflow:hidden; }
+    .wallet-face svg { width:44px; height:44px; }
+    .wallet-check { display:none; }
+    .wallet-demo[data-state="scanning"] .wallet-face::after { content:''; position:absolute; inset:0; background:linear-gradient(transparent,#73cde970,transparent); animation:wallet-scan 1s ease-in-out infinite alternate; }
+    .wallet-demo[data-state="success"] .wallet-face { color:#259b65; border-radius:50%; }
+    .wallet-demo[data-state="success"] .wallet-face-icon { display:none; }
+    .wallet-demo[data-state="success"] .wallet-check { display:block; }
+    #wallet-status { font-size:14px; font-weight:600; }
+    .wallet-note { text-align:center; font-size:10px; line-height:1.6; color:var(--muted); margin:0 0 10px; }
+    #wallet-close { width:100%; }
+    @keyframes wallet-scan { from { transform:translateY(-45px); } to { transform:translateY(45px); } }
+    @media(prefers-reduced-motion:reduce) { .wallet-demo[data-state="scanning"] .wallet-face::after { animation:none; } }
+  `;
+  document.head.append(applePayStyle);
+  $('#tip-confirm').textContent = 'Pay with Apple Pay';
+  const walletPanel = document.createElement('section');
+  walletPanel.className = 'wallet-demo';
+  walletPanel.hidden = true;
+  walletPanel.innerHTML = `
+    <div class="wallet-head"><span class="wallet-brand">Apple Pay</span><span class="wallet-badge">DEMO</span></div>
+    <div class="wallet-card"><span class="wallet-card-icon" aria-hidden="true">CARD</span><div><strong>Demo card &bull;&bull;&bull;&bull; 4242</strong><small>Corner Set &middot; Prototype wallet</small></div></div>
+    <div class="wallet-total"><div><span id="wallet-artist"></span><small>One-time tip &middot; CAD</small></div><strong id="wallet-amount"></strong></div>
+    <button type="button" id="wallet-touch" aria-describedby="wallet-note">
+      <span class="wallet-face" aria-hidden="true">
+        <svg class="wallet-face-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 17v4m18-4v4M25 16v11h-4m-6 6q9 7 18 0"/></svg>
+        <svg class="wallet-check" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 24 8 8 16-17"/></svg>
+      </span><span id="wallet-status" role="status" aria-live="polite">Double-tap here to pay</span>
+    </button>
+    <p class="wallet-note" id="wallet-note">Simulated Face ID. No camera access or money charged.</p>
+    <button type="button" id="wallet-close" class="danger-button">Cancel</button>
+  `;
+  tipDialog.append(walletPanel);
+  const walletTouch = walletPanel.querySelector('#wallet-touch');
+  const walletStatus = walletPanel.querySelector('#wallet-status');
+  const walletClose = walletPanel.querySelector('#wallet-close');
+  let walletTimer = null;
+  let tapTimer = null;
+  let lastWalletTap = null;
+  let walletPayment = null;
+
+  function resetWallet() {
+    clearTimeout(walletTimer);
+    clearTimeout(tapTimer);
+    walletPayment = null;
+    lastWalletTap = null;
+    walletPanel.hidden = true;
+    walletPanel.dataset.state = 'idle';
+    tipForm.hidden = false;
+    walletTouch.disabled = false;
+    walletTouch.removeAttribute('aria-busy');
+    walletPanel.querySelector('#wallet-note').textContent = 'Simulated Face ID. No camera access or money charged.';
+    walletClose.textContent = 'Cancel';
+    walletStatus.textContent = 'Double-tap here to pay';
+    tipDialog.setAttribute('aria-labelledby', 'tip-title');
+  }
+
+  function canTip(id) {
+    return Boolean(id && tipDialog.open && connected === id &&
+      selected === id && !card.hidden && !isOffline() &&
+      available(gigs.find(g => g.id === id)));
+  }
+
+  tipDialog.addEventListener('close', resetWallet);
+  walletClose.addEventListener('click', () => tipDialog.close());
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && walletPayment) tipDialog.close();
+  });
+
   $('#tip-open').addEventListener('click', () => {
     render();
     if ($('#tip-open').disabled || card.hidden) return;
-
+    resetWallet();
     tipArtist = connected;
     $('#tip-title').textContent =
       `Support ${gigs.find(g => g.id === tipArtist).name}.`;
-
-    $('#tip-dialog').showModal();
+    tipDialog.showModal();
   });
 
   $('#tip-confirm').addEventListener('click', () => {
     const id = tipArtist;
     render();
-
-    if (
-      !id ||
-      connected !== id ||
-      selected !== id ||
-      card.hidden ||
-      isOffline() ||
-      !available(gigs.find(g => g.id === id))
-    ) {
+    if (!canTip(id)) {
       toast('Reconnect to the set before tipping.');
       return;
     }
-
-    const amount = document.querySelector(
-      'input[name="tip"]:checked'
-    )?.value;
-
+    const amount = document.querySelector('input[name="tip"]:checked')?.value;
     if (!amount) return;
+    walletPayment = { id, amount, name: gigs.find(g => g.id === id).name };
+    walletPanel.querySelector('#wallet-artist').textContent = `Support ${walletPayment.name}`;
+    walletPanel.querySelector('#wallet-amount').textContent = `$${Number(amount).toFixed(2)}`;
+    tipForm.hidden = true;
+    walletPanel.hidden = false;
+    walletPanel.dataset.state = 'ready';
+    tipDialog.setAttribute('aria-labelledby', 'wallet-artist');
+    walletTouch.focus();
+  });
 
-    $('#tip-dialog').close();
-
-    toast(
-      `Demo $${amount} CAD tip for ${gigs.find(g => g.id === id).name}. No payment charged.`
-    );
-
-    tipArtist = null;
+  walletTouch.addEventListener('click', () => {
+    if (walletPanel.dataset.state !== 'ready' || !walletPayment) return;
+    const now = performance.now();
+    if (lastWalletTap === null || now - lastWalletTap > 650) {
+      lastWalletTap = now;
+      walletStatus.textContent = 'Tap once more to confirm';
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => {
+        lastWalletTap = null;
+        walletStatus.textContent = 'Double-tap here to pay';
+      }, 650);
+      return;
+    }
+    clearTimeout(tapTimer);
+    lastWalletTap = null;
+    const payment = walletPayment;
+    if (!canTip(payment.id)) {
+      tipDialog.close();
+      toast('Reconnect to the set before tipping.');
+      return;
+    }
+    walletPanel.dataset.state = 'scanning';
+    walletStatus.textContent = 'Face ID \u00b7 Verifying\u2026';
+    walletTouch.disabled = true;
+    walletTouch.setAttribute('aria-busy', 'true');
+    walletClose.focus();
+    walletTimer = setTimeout(() => {
+      walletTouch.removeAttribute('aria-busy');
+      if (walletPayment !== payment || !canTip(payment.id)) {
+        if (tipDialog.open) tipDialog.close();
+        return;
+      }
+      walletPanel.dataset.state = 'success';
+      walletStatus.textContent = 'Done! Thank you';
+      walletPanel.querySelector('#wallet-note').textContent =
+        `Demo $${payment.amount} CAD tip to ${payment.name}. No money charged.`;
+      walletClose.textContent = 'Done';
+      walletClose.focus();
+      walletPayment = null;
+    }, 1600);
   });
 
   document.addEventListener('visibilitychange', () => {
