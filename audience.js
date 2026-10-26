@@ -124,7 +124,7 @@
     position.z - g.ground[1]
   );
 
-  const available = g => Boolean(g) && Date.now() < g.endsAt;
+  const available = g => Boolean(g) && (g.id !== 'alex' || (isActive() && Date.now() < session.endsAt)) && Date.now() < g.endsAt;
 
   function filteredGigs() {
     return gigs.filter(g =>
@@ -867,7 +867,7 @@ radiusSlider.addEventListener('change', () => {
     const target = gigs.find(g => g.id === walkTarget.value);
 
     if (!available(target)) {
-      toast('That set has ended. Choose another performance.');
+      toast(target?.id === 'alex' ? 'Start a set as Alex and choose Go live first.' : 'That set has ended. Choose another performance.');
       return;
     }
 
@@ -1692,6 +1692,167 @@ radiusSlider.addEventListener('change', () => {
     mtRenderCollection();
   mtRefresh();
 
+  /* Encore requests stay local to this prototype tab. */
+  const encoreKey = 'corner-set-encore-v1';
+  let encoreData = { requests: [], ends: {}, born };
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(encoreKey));
+    if (stored && Array.isArray(stored.requests) && Number.isFinite(stored.born) && stored.ends) encoreData = stored;
+  } catch {}
+  function saveEncore() {
+    try { sessionStorage.setItem(encoreKey, JSON.stringify(encoreData)); }
+    catch { $('#storage-note').hidden = false; }
+  }
+  gigs.forEach(g => {
+    let end = Number.isFinite(encoreData.ends[g.id]) ? encoreData.ends[g.id] : encoreData.born + g.minutes * 60000;
+    Object.defineProperty(g, 'endsAt', {
+      get: () => g.id === 'alex' && session ? (session.endedAt === null ? session.endsAt : session.endedAt) : end,
+      set: value => { end = value; encoreData.ends[g.id] = value; }
+    });
+  });
+  const encoreStyle = document.createElement('style');
+  encoreStyle.textContent = `
+    .encore-box {margin:20px 0;padding:20px;border:1px solid var(--line);border-radius:20px;background:var(--surface);text-align:left;}
+    .encore-box h3 {margin:6px 0 12px;}
+    #encore-open {width:100%;margin-top:10px;background:#f8dce1;border:1px solid #edbac4;color:#873f51;transition:background .18s,border-color .18s;}
+    #encore-open:hover:not(:disabled) {background:#f2cbd3;border-color:#dda3af;}
+    #encore-open:disabled {background:#f5e9ec;border-color:#e8d7dd;color:#8b727a;opacity:.7;}
+    [data-theme="night"] #encore-open:not(:disabled) {background:#eec5ce;border-color:#e0abb8;color:#653040;}
+    [data-theme="night"] #encore-open:hover:not(:disabled) {background:#f4d4db;}
+    [data-theme="night"] #encore-open:disabled {background:#44323b;border-color:#61424e;color:#bda0ab;}
+    .encore-status {font-size:13px;line-height:1.5;color:var(--muted);white-space:pre-line;overflow-wrap:anywhere;}
+    .encore-request {padding:16px 0;border-top:1px solid var(--line);}
+    .encore-song {white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0;line-height:1.5;}
+    .encore-actions {display:flex;gap:10px;}
+    .encore-actions button {flex:1;margin:0;min-height:44px;}
+    #encore-dialog {max-height:85dvh;overflow:auto;}
+    #encore-dialog label {display:block;margin:18px 0 8px;font-size:13px;font-weight:600;}
+    #encore-dialog input,#encore-dialog textarea,.encore-box select {width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--background);color:var(--text);font:inherit;}
+    #encore-dialog textarea {resize:vertical;min-height:90px;}
+    .encore-presets {display:flex;gap:8px;margin-top:10px;}
+    .encore-presets button {flex:1;border:1px solid var(--line);background:var(--soft);color:var(--accent);border-radius:12px;padding:10px;}
+    .encore-count {color:var(--accent);font-size:12px;}
+  `;
+  document.head.append(encoreStyle);
+  const encoreOpen = document.createElement('button');
+  encoreOpen.id = 'encore-open'; encoreOpen.type = 'button'; encoreOpen.className = 'secondary encore-open';
+  encoreOpen.textContent = 'One more song? Request encore ↗';
+  $('#tip-open').after(encoreOpen);
+  const encoreStatus = document.createElement('p');
+  encoreStatus.className = 'encore-status'; encoreStatus.setAttribute('role', 'status');
+  encoreOpen.after(encoreStatus);
+  const encoreDialog = document.createElement('dialog');
+  encoreDialog.id = 'encore-dialog'; encoreDialog.setAttribute('aria-labelledby', 'encore-title');
+  encoreDialog.innerHTML = `<form id="encore-form">
+    <p class="eyebrow">KEEP THE MOMENT GOING</p><h2 id="encore-title">Request an encore.</h2>
+    <p id="encore-recipient" class="muted"></p>
+    <label for="encore-minutes">Extra time · 1–30 minutes</label>
+    <input id="encore-minutes" type="number" min="1" max="30" step="1" value="5" required inputmode="numeric">
+    <div class="encore-presets"><button type="button" data-minutes="5">5 min</button><button type="button" data-minutes="15">15 min</button><button type="button" data-minutes="30">30 min</button></div>
+    <label for="encore-song">What would you like to hear? <span class="muted">(optional)</span></label>
+    <textarea id="encore-song" maxlength="160" placeholder="Song title / artist" rows="3"></textarea>
+    <p class="small muted">The performer decides whether to accept. Time is added only when accepted.</p>
+    <p id="encore-error" class="encore-status" role="alert"></p>
+    <button class="primary" type="submit">Send request ↗</button>
+    <button id="encore-cancel" class="text-button" type="button">Cancel</button>
+  </form>`;
+  document.body.append(encoreDialog);
+  const inbox = document.createElement('section');
+  inbox.className = 'encore-box'; inbox.id = 'encore-inbox'; inbox.setAttribute('aria-label', 'Encore requests');
+  inbox.innerHTML = `<p class="eyebrow">FROM YOUR AUDIENCE</p><h3>Encore requests <span class="encore-count"></span></h3><p id="encore-inbox-owner" class="small muted"></p><div id="encore-requests"></div>`;
+  $('#main').append(inbox);
+  let encoreTarget = null;
+  let inboxSignature = '';
+  const setToken = g => g.id === 'alex' && session ? `alex-${session.startedAt}` : `demo-${encoreData.born}-${g.id}`;
+  const pendingEncore = g => encoreData.requests.some(r => r.artist === g.id && r.set === setToken(g) && r.status === 'pending');
+  const canRequestEncore = g => userRole === 'audience' && g && g.id === 'alex' && selected === g.id && connected === g.id && available(g) && distance(g) <= 65 && !isOffline();
+  function refreshEncore() {
+    // Retain requests only for Alex's currently running set, including decisions.
+    // Manual ending, timer expiry and a new set all clear the previous history.
+    const currentSet = isActive() && Date.now() < session.endsAt
+      ? `alex-${session.startedAt}` : null;
+    const currentRequests = encoreData.requests.filter(r =>
+      currentSet !== null && r.artist === 'alex' && r.set === currentSet
+    );
+    if (currentRequests.length !== encoreData.requests.length) {
+      encoreData.requests = currentRequests;
+      saveEncore();
+    }
+    const g = gigs.find(g => g.id === selected);
+    encoreOpen.hidden = !g || g.id !== 'alex';
+    encoreStatus.hidden = encoreOpen.hidden;
+    encoreOpen.disabled = !canRequestEncore(g) || pendingEncore(g);
+    const latest = encoreData.requests.filter(r => r.artist === selected && r.set === setToken(g)).at(-1);
+    const status = latest ? `${latest.status === 'pending' ? 'Waiting for' : latest.status === 'accepted' ? 'Accepted by' : latest.status === 'declined' ? 'Declined by' : 'Request expired for'} ${g.name} · +${latest.minutes} min${latest.song ? '\nSong: ' + latest.song : ''}` : canRequestEncore(g) ? 'Ask for up to 30 more minutes and suggest a song.' : 'Connect nearby to request an encore.';
+    if (encoreStatus.textContent !== status) encoreStatus.textContent = status;
+    if (encoreDialog.open && !canRequestEncore(gigs.find(g => g.id === encoreTarget?.id))) encoreDialog.close();
+    inbox.hidden = userRole !== 'performer' || !['home', 'live'].includes(screen);
+    if (screen === 'live' && inbox.parentElement !== $('#live')) $('#extend').after(inbox);
+    if (screen === 'home' && inbox.parentElement !== $('#home')) $('#home').append(inbox);
+    const owner = 'alex';
+    const requests = encoreData.requests.filter(r => r.artist === owner).slice().reverse();
+    const signature = JSON.stringify([owner, requests, isOffline()]);
+    if (signature === inboxSignature) return;
+    inboxSignature = signature;
+    $('#encore-inbox-owner').textContent = `${gigs.find(g => g.id === owner).name} · Requests from nearby listeners`;
+    inbox.querySelector('.encore-count').textContent = `(${requests.filter(r => r.status === 'pending').length} pending)`;
+    const list = $('#encore-requests'); list.replaceChildren();
+    if (!requests.length) { const p = document.createElement('p'); p.className = 'small muted'; p.textContent = 'No requests yet. Your next encore starts with a listener.'; list.append(p); }
+    requests.forEach(r => {
+      const row = document.createElement('article'); row.className = 'encore-request';
+      const title = document.createElement('strong'); title.textContent = `Nearby listener · +${r.minutes} min`;
+      const song = document.createElement('p'); song.className = 'encore-song'; song.textContent = r.song || 'No song preference — your choice.';
+      row.append(title, song);
+      if (r.status === 'pending') {
+        const actions = document.createElement('div'); actions.className = 'encore-actions';
+        ['Accept', 'Decline'].forEach(label => {
+          const button = document.createElement('button'); button.type = 'button'; button.className = label === 'Accept' ? 'secondary' : 'text-button'; button.textContent = label; button.disabled = isOffline();
+          button.addEventListener('click', () => decideEncore(r.id, label === 'Accept'));
+          actions.append(button);
+        }); row.append(actions);
+      } else { const state = document.createElement('p'); state.className = 'small muted'; state.textContent = r.status === 'accepted' ? 'Accepted · time added' : r.status === 'declined' ? 'Declined · no time added' : 'Expired · this set has ended'; row.append(state); }
+      list.append(row);
+    });
+  }
+  function decideEncore(id, accept) {
+    const r = encoreData.requests.find(r => r.id === id);
+    if (userRole !== 'performer' || isOffline() || !r || r.artist !== 'alex' || r.status !== 'pending') return;
+    const g = gigs.find(g => g.id === r.artist);
+    if (!available(g) || r.set !== setToken(g)) { refreshEncore(); toast('This set has ended.'); return; }
+    if (accept) {
+      const ms = r.minutes * 60000;
+      if (g.id === 'alex' && session) {
+        session.endsAt += ms; session.totalMs += ms;
+        if (syncing) pendingSync = true;
+        save(); update();
+      } else { g.endsAt += ms; }
+    }
+    r.status = accept ? 'accepted' : 'declined';
+    saveEncore(); refreshEncore(); render();
+    toast(accept ? `${g.name} accepted · ${r.minutes} minutes added.` : `${g.name} declined the request.`);
+  }
+  encoreOpen.addEventListener('click', () => {
+    const g = gigs.find(g => g.id === selected);
+    if (!canRequestEncore(g) || pendingEncore(g)) return;
+    encoreTarget = {id:g.id, set:setToken(g)};
+    $('#encore-form').reset(); $('#encore-error').textContent = '';
+    $('#encore-recipient').textContent = `For ${g.name} · ${g.style}`;
+    encoreDialog.showModal();
+  });
+  $('#encore-cancel').addEventListener('click', () => encoreDialog.close());
+  encoreDialog.querySelectorAll('[data-minutes]').forEach(button => button.addEventListener('click', () => { $('#encore-minutes').value = button.dataset.minutes; }));
+  $('#encore-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const g = gigs.find(g => g.id === encoreTarget?.id);
+    if (!canRequestEncore(g) || encoreTarget.set !== setToken(g) || pendingEncore(g)) { encoreDialog.close(); toast('Connect to this live set to send a request.'); return; }
+    const minutes = Number($('#encore-minutes').value);
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 30) { $('#encore-error').textContent = 'Choose a whole number from 1 to 30 minutes.'; return; }
+    encoreData.requests.push({id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, artist:g.id, set:setToken(g), minutes, song:$('#encore-song').value.trim().slice(0,160), status:'pending'});
+    saveEncore(); encoreDialog.close(); refreshEncore(); toast(`Encore request sent to ${g.name}.`);
+  });
+  setInterval(refreshEncore, 250);
+  refreshEncore();
+
   window.cornerAudience = {
     switchRole,
     getState: () => ({
@@ -2127,4 +2288,89 @@ radiusSlider.addEventListener('change', () => {
 
   updateButton(false);
   syncVisibility();
+})();
+/* A manual checklist for prototype walkthroughs. */
+(() => {
+  const intro = document.querySelector('.intro');
+  if (!intro) return;
+  const style = document.createElement('style');
+  style.textContent = `
+    .test-guide {margin-top:24px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;}
+    .test-guide h2 {font-size:18px;letter-spacing:-.4px;margin:0 0 8px;font-weight:600;}
+    .intro .test-guide p {font-size:12px;line-height:1.5;margin:8px 0 14px;}
+    .test-guide details {border-top:1px solid var(--line);padding:10px 0;}
+    .test-guide summary {cursor:pointer;font-size:12px;font-weight:600;color:var(--text);line-height:1.6;}
+    .test-guide label {display:flex;gap:9px;align-items:flex-start;margin-top:12px;line-height:1.5;color:var(--text);cursor:pointer;}
+    .test-guide input {flex:0 0 auto;width:16px;height:16px;margin:2px 0 0;accent-color:var(--accent);}
+    .test-guide input:checked + span {color:var(--muted);text-decoration:line-through;}
+    .test-guide footer {display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
+    .test-guide footer button {padding:6px 0;min-height:32px;font-size:12px;}
+    .test-guide output {font-size:12px;color:var(--muted);}
+    html, body, .intro {--guide-scroll:#c5d4da;--guide-scroll-hover:#98b4c0;scrollbar-width:thin;scrollbar-color:var(--guide-scroll) transparent;}
+    html[data-theme="night"], [data-theme="night"] body, [data-theme="night"] .intro {--guide-scroll:#455b69;--guide-scroll-hover:#698795;}
+    :is(html, body, .intro)::-webkit-scrollbar {width:6px;height:6px;}
+    :is(html, body, .intro)::-webkit-scrollbar-track {background:transparent;}
+    :is(html, body, .intro)::-webkit-scrollbar-thumb {background:var(--guide-scroll);border-radius:999px;}
+    :is(html, body, .intro)::-webkit-scrollbar-thumb:hover {background:var(--guide-scroll-hover);}
+    :is(html, body, .intro)::-webkit-scrollbar-button {display:none;width:0;height:0;}
+    :is(html, body, .intro)::-webkit-scrollbar-corner {background:transparent;}
+    html, body {--page-scroll:#93aab5;--page-scroll-hover:#688997;--page-track:#e7edf1;scrollbar-width:auto;scrollbar-color:var(--page-scroll) var(--page-track);}
+    html[data-theme="night"], [data-theme="night"] body {--page-scroll:#7893a2;--page-scroll-hover:#9bb5c2;--page-track:#24333e;}
+    :is(html, body)::-webkit-scrollbar {width:12px;height:12px;}
+    :is(html, body)::-webkit-scrollbar-track {background:var(--page-track);}
+    :is(html, body)::-webkit-scrollbar-thumb {background:var(--page-scroll);border-radius:999px;min-height:48px;}
+    :is(html, body)::-webkit-scrollbar-thumb:hover {background:var(--page-scroll-hover);}
+    @supports selector(::-webkit-scrollbar) {html, body, .intro {scrollbar-width:auto;scrollbar-color:auto;}}
+    @media (min-width:1051px) {.intro {max-height:calc(100dvh - 72px);overflow-y:auto;scrollbar-gutter:stable;padding-right:12px;}}
+    @media (min-width:681px) and (max-width:1050px) {.workspace > .intro {display:block;grid-column:1 / -1;position:static;} .intro > :not(.test-guide) {display:none;} .test-guide {margin-top:0;}}
+    @media (max-width:680px) {.workspace > .intro {display:block;position:static;padding:20px;} .intro > :not(.test-guide) {display:none;} .test-guide {margin-top:0;}}
+  `;
+  document.head.append(style);
+  const groups = [
+    ['01 / Start as Performer', [
+      'Start a set → choose a duration → Go live. Alex now appears on the audience map.',
+      'Try +15 MIN and check the countdown.',
+      'Single-tap the avatar: view the profile and toggle Night mode. Return to your set.'
+    ]],
+    ['02 / Explore as Audience', [
+      'Double-tap the avatar, or use Switch to Audience.',
+      'Drag / zoom the map, adjust the distance filter and select nearby artists.',
+      'Choose Alex under Walk toward → start walking. Check the automatic connection.',
+      'Play Alex’s preview. Try Leave a tip and follow the simulated payment steps.',
+      'Request an encore: enter 1–30 minutes and an optional song.',
+      'Create a Moment Ticket, watch it print, then open and delete it.'
+    ]],
+    ['03 / Respond & finish', [
+      'Switch to Performer → accept the encore. Check the song and added time.',
+      'Send another request as Audience, then decline it as Performer. Time stays unchanged.',
+      'Simulate offline, then reconnect. Reset your walk to test disconnection.',
+      'End set: try Keep playing, then confirm End set. Alex disappears from the audience map.',
+      'Start another set → Jump to last 10 seconds to test automatic ending.'
+    ]]
+  ];
+  const guide = document.createElement('section'); guide.className = 'test-guide'; guide.setAttribute('aria-label', 'Prototype testing checklist');
+  guide.innerHTML = '<h2>Try Corner Set.</h2><p>Follow the steps and tick each one as you test. Payments and walking are simulated.</p>';
+  const key = 'corner-set-test-checklist-v1';
+  let checked = [];
+  try { const stored = JSON.parse(sessionStorage.getItem(key) || '[]'); if (Array.isArray(stored)) checked = stored; } catch {}
+  let index = 0;
+  groups.forEach(([title, steps], groupIndex) => {
+    const section = document.createElement('details'); section.open = groupIndex === 0;
+    const summary = document.createElement('summary'); summary.textContent = title; section.append(summary);
+    steps.forEach(text => {
+      const label = document.createElement('label'); const input = document.createElement('input'); input.type = 'checkbox'; input.checked = checked[index] === true; index++;
+      const span = document.createElement('span'); span.textContent = text; label.append(input, span); section.append(label);
+    }); guide.append(section);
+  });
+  const footer = document.createElement('footer'); const count = document.createElement('output'); count.setAttribute('aria-live', 'polite');
+  const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'text-button'; reset.textContent = 'Reset checklist';
+  footer.append(count, reset); guide.append(footer); intro.append(guide);
+  function updateChecklist() {
+    const values = [...guide.querySelectorAll('input')].map(input => input.checked);
+    count.textContent = `${values.filter(Boolean).length} / ${values.length} tested`;
+    try { sessionStorage.setItem(key, JSON.stringify(values)); } catch {}
+  }
+  guide.addEventListener('change', updateChecklist);
+  reset.addEventListener('click', () => { guide.querySelectorAll('input').forEach(input => { input.checked = false; }); updateChecklist(); });
+  updateChecklist();
 })();
