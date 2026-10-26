@@ -1710,6 +1710,24 @@ radiusSlider.addEventListener('change', () => {
       set: value => { end = value; encoreData.ends[g.id] = value; }
     });
   });
+  const resetOtherTimers = document.createElement('button');
+  resetOtherTimers.type = 'button';
+  resetOtherTimers.className = 'secondary';
+  resetOtherTimers.id = 'reset-other-timers';
+  resetOtherTimers.textContent = 'Reset other artists’ timers';
+  resetOtherTimers.title = 'Mika: 35 min · Leo: 45 min · Nina: 30 min. Alex is unchanged.';
+  const resetOtherNote = document.createElement('p');
+  resetOtherNote.className = 'small muted';
+  resetOtherNote.textContent = 'Mika 35 min · Leo 45 min · Nina 30 min. Does not affect Alex.';
+  $('#fast-forward').after(resetOtherTimers, resetOtherNote);
+  resetOtherTimers.addEventListener('click', () => {
+    const now = Date.now();
+    gigs.forEach(g => { if (g.id !== 'alex') g.endsAt = now + g.minutes * 60000; });
+    saveEncore();
+    render();
+    mtRefresh();
+    toast('Mika, Leo and Nina’s timers reset. Alex is unchanged.');
+  });
   const encoreStyle = document.createElement('style');
   encoreStyle.textContent = `
     .encore-box {margin:20px 0;padding:20px;border:1px solid var(--line);border-radius:20px;background:var(--surface);text-align:left;}
