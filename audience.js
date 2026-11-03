@@ -1056,6 +1056,9 @@ radiusSlider.addEventListener('change', () => {
         return;
       }
       walletPanel.dataset.state = 'success';
+      document.dispatchEvent(new CustomEvent('corner-tip-received', {
+        detail: { artistId: payment.id, amount: Number(payment.amount) }
+      }));
       walletStatus.textContent = 'Done! Thank you';
       walletPanel.querySelector('#wallet-note').textContent =
         `Demo $${payment.amount} CAD tip to ${payment.name}. No money charged.`;
@@ -1785,6 +1788,30 @@ radiusSlider.addEventListener('change', () => {
   const setToken = g => g.id === 'alex' && session ? `alex-${session.startedAt}` : `demo-${encoreData.born}-${g.id}`;
   const pendingEncore = g => encoreData.requests.some(r => r.artist === g.id && r.set === setToken(g) && r.status === 'pending');
   const canRequestEncore = g => userRole === 'audience' && g && g.id === 'alex' && selected === g.id && connected === g.id && available(g) && distance(g) <= 65 && !isOffline();
+  let encoreSelectedId = null;
+  const encoreHistory = document.createElement('dialog');
+  encoreHistory.className = 'encore-history-dialog';
+  encoreHistory.setAttribute('aria-label', 'Encore history');
+  document.body.append(encoreHistory);
+  encoreHistory.addEventListener('click', event => {
+    if (event.target === encoreHistory) encoreHistory.close();
+  });
+  function showEncoreHistory() {
+    encoreHistory.replaceChildren();
+    const heading = document.createElement('h2'); heading.textContent = 'Encore history';
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'secondary'; close.textContent = 'Close';
+    close.addEventListener('click', () => encoreHistory.close());
+    encoreHistory.append(heading, close);
+    const items = encoreData.requests.filter(r => r.artist === 'alex' && r.status !== 'pending').slice().reverse();
+    if (!items.length) { const p = document.createElement('p'); p.textContent = 'No requests handled yet.'; encoreHistory.append(p); }
+    items.forEach(r => {
+      const row = document.createElement('article'); row.className = 'encore-history-row';
+      const title = document.createElement('strong'); title.textContent = r.song || 'Keep playing';
+      const state = document.createElement('p'); state.textContent = `+${r.minutes} min · ${r.status === 'accepted' ? 'Accepted' : r.status === 'declined' ? 'Declined' : 'Expired'}`;
+      row.append(title, state); encoreHistory.append(row);
+    });
+    encoreHistory.showModal();
+  }
   function refreshEncore() {
     // Retain requests only for Alex's currently running set, including decisions.
     // Manual ending, timer expiry and a new set all clear the previous history.
@@ -1815,24 +1842,52 @@ radiusSlider.addEventListener('change', () => {
     inboxSignature = signature;
     $('#encore-inbox-owner').textContent = `${gigs.find(g => g.id === owner).name} · Requests from nearby listeners`;
     inbox.querySelector('.encore-count').textContent = `(${requests.filter(r => r.status === 'pending').length} pending)`;
-    const list = $('#encore-requests'); list.replaceChildren();
-    if (!requests.length) { const p = document.createElement('p'); p.className = 'small muted'; p.textContent = 'No requests yet. Your next encore starts with a listener.'; list.append(p); }
-    requests.forEach(r => {
-      const row = document.createElement('article'); row.className = 'encore-request';
-      const title = document.createElement('strong'); title.textContent = `Nearby listener · +${r.minutes} min`;
-      const song = document.createElement('p'); song.className = 'encore-song'; song.textContent = r.song || 'No song preference — your choice.';
-      row.append(title, song);
-      if (r.status === 'pending') {
-        const actions = document.createElement('div'); actions.className = 'encore-actions';
-        ['Accept', 'Decline'].forEach(label => {
-          const button = document.createElement('button'); button.type = 'button'; button.className = label === 'Accept' ? 'secondary' : 'text-button'; button.textContent = label; button.disabled = isOffline();
-          button.addEventListener('click', () => decideEncore(r.id, label === 'Accept'));
-          actions.append(button);
-        }); row.append(actions);
-      } else { const state = document.createElement('p'); state.className = 'small muted'; state.textContent = r.status === 'accepted' ? 'Accepted · time added' : r.status === 'declined' ? 'Declined · no time added' : 'Expired · this set has ended'; row.append(state); }
-      list.append(row);
+    const list = $('#encore-requests');
+    const restoreFocus = list.contains(document.activeElement);
+    list.replaceChildren();
+    const pending = requests.filter(r => r.status === 'pending').reverse();
+    let index = pending.findIndex(r => r.id === encoreSelectedId);
+    if (index < 0) index = 0;
+    const current = pending[index];
+    encoreSelectedId = current?.id || null;
+    const row = document.createElement('article'); row.className = 'encore-player';
+    row.tabIndex = -1;
+    if (current) {
+      const minutes = document.createElement('strong'); minutes.className = 'encore-player-time'; minutes.textContent = `+${current.minutes} min`;
+      const song = document.createElement('p'); song.className = 'encore-player-song'; song.textContent = current.song || 'Keep playing';
+      const actions = document.createElement('div'); actions.className = 'encore-player-actions';
+      ['Accept', 'Decline'].forEach(label => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = label === 'Accept' ? 'primary' : 'text-button'; button.textContent = label; button.disabled = isOffline();
+        button.addEventListener('click', () => decideEncore(current.id, label === 'Accept'));
+        actions.append(button);
+      });
+      row.append(minutes, song, actions);
+    } else {
+      const empty = document.createElement('p'); empty.className = 'encore-player-empty'; empty.textContent = 'Waiting for an encore'; row.append(empty);
+    }
+    const footer = document.createElement('div'); footer.className = 'encore-player-nav';
+    function move(delta) {
+      if (!pending.length) return;
+      encoreSelectedId = pending[(index + delta + pending.length) % pending.length].id;
+      inboxSignature = ''; refreshEncore();
+    }
+    const previous = document.createElement('button'); previous.type = 'button'; previous.textContent = '‹'; previous.setAttribute('aria-label', 'Previous request'); previous.disabled = pending.length < 2; previous.addEventListener('click', () => move(-1));
+    const count = document.createElement('span'); count.textContent = pending.length ? `${index + 1} / ${pending.length}` : '0 / 0';
+    const next = document.createElement('button'); next.type = 'button'; next.textContent = '›'; next.setAttribute('aria-label', 'Next request'); next.disabled = pending.length < 2; next.addEventListener('click', () => move(1));
+    const history = document.createElement('button'); history.type = 'button'; history.className = 'encore-history-link'; history.textContent = 'History'; history.addEventListener('click', showEncoreHistory);
+    footer.append(previous, count, next, history);
+    list.append(row, footer);
+    let swipeStart = null;
+    row.addEventListener('pointerdown', event => { if (event.target.closest('button')) return; swipeStart = {x:event.clientX,y:event.clientY}; });
+    row.addEventListener('pointerup', event => {
+      if (!swipeStart) return;
+      const dx = event.clientX - swipeStart.x, dy = event.clientY - swipeStart.y; swipeStart = null;
+      if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy) * 1.5) move(dx < 0 ? 1 : -1);
     });
+    row.addEventListener('pointercancel', () => { swipeStart = null; });
+    if (restoreFocus) row.focus({preventScroll:true});
   }
+
   function decideEncore(id, accept) {
     const r = encoreData.requests.find(r => r.id === id);
     if (userRole !== 'performer' || isOffline() || !r || r.artist !== 'alex' || r.status !== 'pending') return;

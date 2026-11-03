@@ -237,6 +237,26 @@ $("#publish").addEventListener("click", () => {
   toast("You’re live on the demo map.");
 });
 
+let timerWaveReset;
+let timerShapeReset;
+function reactTimerWave(confirmed = false) {
+  const ring = $("#timer-ring");
+  clearTimeout(timerWaveReset);
+  clearTimeout(timerShapeReset);
+  ring.classList.remove('tap-morph', 'tap-morph-confirmed');
+  void ring.offsetWidth;
+  ring.classList.add(confirmed ? 'tap-morph-confirmed' : 'tap-morph');
+  timerShapeReset = setTimeout(() => ring.classList.remove('tap-morph', 'tap-morph-confirmed'), 760);
+  ring.style.setProperty('--tap-scale', confirmed ? '1.10' : '1.045');
+  ring.style.setProperty('--tap-brightness', confirmed ? '1.14' : '1.06');
+  timerWaveReset = setTimeout(() => {
+    ring.style.setProperty('--tap-scale', '1');
+    ring.style.setProperty('--tap-brightness', '1');
+  }, confirmed ? 190 : 100);
+}
+$("#timer-ring").addEventListener("pointerdown", event => {
+  if (event.isPrimary && event.button === 0 && isActive()) reactTimerWave();
+});
 function extendTenMinutes() {
   if (!isActive()) return;
 
@@ -248,6 +268,7 @@ function extendTenMinutes() {
   const extension = 10 * 60 * 1000;
   session.endsAt += extension;
   session.totalMs += extension;
+  reactTimerWave(true);
 
   if (isOffline() || syncing) pendingSync = true;
 
