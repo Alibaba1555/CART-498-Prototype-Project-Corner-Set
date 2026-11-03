@@ -16,9 +16,9 @@
       id: 'mika',
       name: 'Mika',
       style: 'Jazz \u00b7 Saxophone',
-      place: 'West corner \u00b7 Street level',
-      point: [-95, 8, 70],
-      ground: [-95, 70],
+      place: 'Garden park \u00b7 Lawn-side path',
+      point: [0, 8, 113],
+      ground: [0, 113],
       minutes: 35
     },
     {
