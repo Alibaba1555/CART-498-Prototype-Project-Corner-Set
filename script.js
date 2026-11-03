@@ -237,7 +237,7 @@ $("#publish").addEventListener("click", () => {
   toast("You’re live on the demo map.");
 });
 
-$("#extend").addEventListener("click", () => {
+function extendTenMinutes() {
   if (!isActive()) return;
 
   if (Date.now() >= session.endsAt) {
@@ -245,7 +245,7 @@ $("#extend").addEventListener("click", () => {
     return;
   }
 
-  const extension = 15 * 60 * 1000;
+  const extension = 10 * 60 * 1000;
   session.endsAt += extension;
   session.totalMs += extension;
 
@@ -255,9 +255,11 @@ $("#extend").addEventListener("click", () => {
   update();
 
   toast(pendingSync
-    ? "15 minutes added locally — synchronization pending."
-    : "15 minutes added. Keep playing.");
-});
+    ? "10 minutes added locally — synchronization pending."
+    : "10 minutes added. Keep playing.");
+}
+$("#timer-ring").addEventListener("dblclick", extendTenMinutes);
+$("#timer-ring").addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (!event.repeat) extendTenMinutes(); } });
 
 $("#end").addEventListener("click", () => {
   if (!isActive()) return;

@@ -1306,7 +1306,7 @@ radiusSlider.addEventListener('change', () => {
   const mtSave = document.createElement('button');
   mtSave.type = 'button';
   mtSave.className = 'secondary mt-save';
-  mtSave.textContent = 'Save this moment ↗';
+  mtSave.textContent = 'Save this moment';
 
   const mtHelp = document.createElement('p');
   mtHelp.className = 'mt-help';
@@ -1335,7 +1335,7 @@ radiusSlider.addEventListener('change', () => {
     <div class="mt-printer">
       <article class="mt-ticket">
         <p class="mt-label">MOMENT TICKET</p>
-        <p class="mt-brand">CORNER SET ↗</p>
+        <p class="mt-brand">CORNER SET</p>
 
         <div class="mt-art" aria-hidden="true"></div>
 
@@ -1362,7 +1362,7 @@ radiusSlider.addEventListener('change', () => {
     <p class="mt-help mt-result" role="status"></p>
 
     <button type="button" class="primary" id="mt-close">
-      Keep exploring ↗
+      Keep exploring
     </button>
   `;
   document.body.append(mtDialog);
@@ -1613,7 +1613,8 @@ radiusSlider.addEventListener('change', () => {
         `${new Date(ticket.date).toLocaleDateString()} · ` +
         ticket.place.split(' · ')[0];
 
-      arrow.textContent = '↗';
+      arrow.textContent = '';
+      arrow.hidden = true;
       arrow.setAttribute('aria-hidden', 'true');
 
       label.append(name, detail);
@@ -1640,8 +1641,8 @@ radiusSlider.addEventListener('change', () => {
     mtSave.disabled = !existing && !canCollect;
 
     mtSave.textContent = existing
-      ? 'View your Moment Ticket ↗'
-      : 'Save this moment ↗';
+      ? 'View your Moment Ticket'
+      : 'Save this moment';
 
     mtHelp.textContent = existing
       ? 'Save this moment to view your ticket.'
@@ -1754,7 +1755,7 @@ radiusSlider.addEventListener('change', () => {
   document.head.append(encoreStyle);
   const encoreOpen = document.createElement('button');
   encoreOpen.id = 'encore-open'; encoreOpen.type = 'button'; encoreOpen.className = 'secondary encore-open';
-  encoreOpen.textContent = 'One more song? Request encore ↗';
+  encoreOpen.textContent = 'One more song? Request encore';
   $('#tip-open').after(encoreOpen);
   const encoreStatus = document.createElement('p');
   encoreStatus.className = 'encore-status'; encoreStatus.setAttribute('role', 'status');
@@ -1771,7 +1772,7 @@ radiusSlider.addEventListener('change', () => {
     <textarea id="encore-song" maxlength="160" placeholder="Song title / artist" rows="3"></textarea>
     <p class="small muted">The performer decides whether to accept. Time is added only when accepted.</p>
     <p id="encore-error" class="encore-status" role="alert"></p>
-    <button class="primary" type="submit">Send request ↗</button>
+    <button class="primary" type="submit">Send request</button>
     <button id="encore-cancel" class="text-button" type="button">Cancel</button>
   </form>`;
   document.body.append(encoreDialog);
@@ -1805,7 +1806,7 @@ radiusSlider.addEventListener('change', () => {
     if (encoreStatus.textContent !== status) encoreStatus.textContent = status;
     if (encoreDialog.open && !canRequestEncore(gigs.find(g => g.id === encoreTarget?.id))) encoreDialog.close();
     inbox.hidden = userRole !== 'performer' || !['home', 'live'].includes(screen);
-    if (screen === 'live' && inbox.parentElement !== $('#live')) $('#extend').after(inbox);
+    if (screen === 'live' && inbox.parentElement !== $('#live-feedback')) $('#live-feedback').prepend(inbox);
     if (screen === 'home' && inbox.parentElement !== $('#home')) $('#home').append(inbox);
     const owner = 'alex';
     const requests = encoreData.requests.filter(r => r.artist === owner).slice().reverse();
@@ -2022,7 +2023,7 @@ radiusSlider.addEventListener('change', () => {
   panel.innerHTML = `
     <div class="alex-preview-header">
       <div>
-        <p class="alex-preview-label">15-SECOND PREVIEW</p>
+        <p class="alex-preview-label">15-SECOND PREVIEW <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></p>
         <p class="alex-preview-title">A little of Alex's sound</p>
       </div>
 
@@ -2048,7 +2049,7 @@ radiusSlider.addEventListener('change', () => {
     </div>
   `;
 
-  profile.append(panel);
+  card.insertBefore(panel, card.querySelector(".artist-details"));
 
   const button = panel.querySelector('button');
   const progress = panel.querySelector('progress');
@@ -2078,6 +2079,7 @@ radiusSlider.addEventListener('change', () => {
   }
 
   function updateButton(playing) {
+    panel.classList.toggle("is-playing", playing);
     button.innerHTML = playing ? pauseIcon : playIcon;
 
     button.setAttribute(
