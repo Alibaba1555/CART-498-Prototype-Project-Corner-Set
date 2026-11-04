@@ -2403,67 +2403,52 @@ radiusSlider.addEventListener('change', () => {
   document.head.append(style);
   const groups = [
   [
-    "01 / Start a live set",
+    "01 / Go live",
     [
-      "Start in Performer mode. Choose Start a set, review the location and duration options, then Go live.",
-      "Double-tap the timer once to add 10 minutes. Check the countdown, scheduled end, and wave response.",
-      "Single-tap the avatar to open your profile. Try Night mode, return to your set, then switch back to day mode."
+      "Start a set → choose a duration → Go live.",
+      "Double-tap the timer: +10 min and a wave response.",
+      "Open your profile. Try Night mode."
     ]
   ],
   [
-    "02 / Explore the neighbourhood",
+    "02 / Explore & listen",
     [
-      "Double-tap the avatar or use Switch to Audience. Find your blue position marker and the red performance areas.",
-      "Drag to rotate the map, zoom with + / − or scroll, then use ↺ to reset the view. Look for the parks, fountain, and Mika’s park location.",
-      "Adjust the range slider from 50 m to All. Select different artists from the map or nearby list and compare their details.",
-      "Zoom out to find the grouped marker labelled 2 near Leo and Nina. Select it to reveal the separate performances.",
-      "Open Alex’s card and expand About the artist. Read the genres and bio; the Instagram link is sample content.",
-      "Play Alex’s 15-second preview. Pause, resume, and let it finish; watch the progress bar and sound indicator."
+      "Switch to Audience. Rotate, zoom, and reset the map.",
+      "Try the range filter, artist pins, and grouped “2” marker.",
+      "Open Alex’s profile details. Play / pause the preview.",
+      "Walk toward Alex to connect automatically."
     ]
   ],
   [
-    "03 / Connect & support Alex",
+    "03 / Tip & save",
     [
-      "Before walking closer, check which audience actions are unavailable. Choose Alex under Walk toward and select Walk toward performance. Watch for automatic connection.",
-      "Open Leave a tip, choose an amount, then cancel. No tip should be added.",
-      "Try again and complete the demo payment, including the double-tap confirmation. No real money is charged.",
-      "Switch to Performer. Check that Alex’s tip jar shows your chosen amount on a dealt card and updates the total below.",
-      "Use Simulate +$5 tip twice. Watch the new cards overlap and check that the total increases by $10."
+      "Try tipping: cancel once, then complete a demo payment.",
+      "Save a Moment Ticket. Watch it print.",
+      "Open My Moments in your profile. View and delete the ticket.",
+      "Switch to Performer. Check the tip cards and total; try +$5."
     ]
   ],
   [
-    "04 / Save a Moment Ticket",
+    "04 / Encore",
     [
-      "Switch to Audience and reconnect to Alex if needed. Choose Save this moment and watch the ticket print.",
-      "Close and reopen it with View your Moment Ticket. Open your profile and find the saved ticket in My Moments.",
-      "Open the saved ticket from My Moments, then delete it using the confirmation step. Return to the performance."
+      "As Audience, send two requests: with and without a song.",
+      "As Performer, browse requests. Accept one; decline the other.",
+      "Check the added time, pending count, and History."
     ]
   ],
   [
-    "05 / Send & review encores",
+    "05 / Finish & reset",
     [
-      "While connected to Alex as Audience, request an encore with extra minutes and a song. Send another request with no song preference.",
-      "Switch to Performer. Check the pending count and browse the requests with previous / next controls or a horizontal swipe.",
-      "Accept one request. Check that only its requested minutes are added to the timer and the pending count decreases.",
-      "Decline the other request. Check that no time is added. Open History to review both decisions, then close it.",
-      "With no pending requests, check the waiting message. The tip jar and request panel should stay aligned."
-    ]
-  ],
-  [
-    "06 / Connection & session ending",
-    [
-      "Switch to Audience. Use Reset my position to move away and check disconnection. Walk toward Alex again to reconnect.",
-      "Turn on Simulate offline and check the status and unavailable actions. Turn it off and check recovery.",
-      "Use Reset other artists’ timers. Check Mika, Leo, and Nina; Alex’s own timer should stay unchanged.",
-      "Switch to Performer. Choose End set, then Keep playing. Check that the set continues.",
-      "Choose End set again and confirm. Return to Audience and check that Alex is no longer listed as live.",
-      "Switch to Performer, start a new set, and use Jump to last 10 seconds. Wait for automatic ending and check the finished screen."
+      "As Audience, reset your position, then walk back to reconnect.",
+      "Try offline / online and Reset other artists’ timers.",
+      "As Performer, try End set → Keep playing, then end the set.",
+      "Start a new set. Jump to last 10 seconds and let it finish."
     ]
   ]
 ];
   const guide = document.createElement('section'); guide.className = 'test-guide'; guide.setAttribute('aria-label', 'Prototype testing checklist');
-  guide.innerHTML = '<h2>Try Corner Set.</h2><p>Work through the six sections in order and tick each step after trying it. Keep Alex’s set live until the final section. Walking and payments are simulated; no real money is charged.</p>';
-  const key = 'corner-set-test-checklist-v2-current';
+  guide.innerHTML = '<h2>Try Corner Set.</h2><p>Try each step, then tick it off. Walking and payments are simulated.</p>';
+  const key = 'corner-set-test-checklist-v3-compact';
   let checked = [];
   try { const stored = JSON.parse(sessionStorage.getItem(key) || '[]'); if (Array.isArray(stored)) checked = stored; } catch {}
   let index = 0;
