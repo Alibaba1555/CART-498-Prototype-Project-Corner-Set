@@ -496,6 +496,14 @@ function getMapTargets(audience) {
         scene.push({lamp, depth: project([lamp.x, 0, lamp.z]).depth});
       }
     }
+    const walker = window.cornerAudience?.getState();
+    if (walker?.active && walker.walkPath?.length) {
+      const path = [[walker.position.x,walker.position.z], ...walker.walkPath];
+      ctx.save();
+      ctx.setLineDash([5,4]);
+      line(path.map(([x,z]) => [x,1,z]), night ? '#8dd6ed' : '#307e9e', 2);
+      ctx.restore();
+    }
     scene.sort((a,b)=>a.depth-b.depth).forEach(item=>{
       if(item.lamp)drawStreetLamp(item.lamp);
       else if(item.tree)drawTree(item.tree);
@@ -504,7 +512,7 @@ function getMapTargets(audience) {
       });
     });
     // Area signals remain visible through the illustrative buildings.
-    const audience=window.cornerAudience?.getState();
+    const audience=walker;
     const targets = getMapTargets(audience);
     for(const target of targets){
       const p=project(target.point);

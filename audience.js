@@ -99,7 +99,60 @@
 
   fillMusicianProfile($('#own-musician-profile'), 'alex');
 
-  let position = { x: -170, z: 160 };
+  let position = { x: -76, z: 160 };
+  // Street intersections, park footpath and short approaches to the venues.
+  const streets = [
+    [[-76,160],[-76,54]], [[-76,54],[0,54]], [[0,54],[76,54]],
+    [[-76,54],[-76,-50]], [[76,54],[76,-50]], [[-76,-50],[76,-50]],
+    [[0,54],[0,50]], [[0,54],[0,113]], [[76,-50],[112,-50]],
+    [[112,-50],[112,-60]], [[112,-50],[150,-50]], [[150,-50],[150,-42]]
+  ];
+  let walkPath = [];
+  const metres = (a,b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
+
+  function routeTo(gig) {
+    const start = [position.x, position.z];
+    const graph = new Map();
+    function link(a,b) {
+      const key = a.join(',');
+      if (!graph.has(key)) graph.set(key, []);
+      graph.get(key).push(b);
+    }
+    for (const [a,b] of streets) {
+      link(a,b);
+      link(b,a);
+      // Allow a new walk to start midway along the current street.
+      if (Math.abs(metres(a,start) + metres(start,b) - metres(a,b)) < 0.00001) {
+        link(start,a);
+        link(start,b);
+      }
+    }
+    const queue = [{point:start, path:[], length:0}];
+    const visited = new Set();
+    while (queue.length) {
+      queue.sort((a,b) => a.length-b.length);
+      const current = queue.shift();
+      const key = current.point.join(',');
+      if (visited.has(key)) continue;
+      visited.add(key);
+      if (key === gig.ground.join(',')) return current;
+      for (const next of graph.get(key) || []) {
+        if (!visited.has(next.join(','))) queue.push({
+          point:next, path:[...current.path,next],
+          length:current.length + metres(current.point,next)
+        });
+      }
+    }
+    return null;
+  }
+
+  function walkSummary(gig) {
+    const route = routeTo(gig);
+    const left = Math.max(0, Math.ceil((gig.endsAt-Date.now()) / 60000));
+    const walk = !route ? 'Route unavailable' : route.length < 1 ? 'Here' :
+      route.length < 75 ? '<1 min walk' : Math.ceil(route.length / 75) + ' min walk';
+    return [walk, left + ' min left'];
+  }
   let selected = 'alex';
   let connected = null;
   let walking = false;
@@ -136,6 +189,102 @@
     document.dispatchEvent(new Event('corner-map-update'));
   }
 
+  const preview = document.createElement('section');
+  preview.id = 'map-artist-preview';
+  preview.hidden = true;
+  preview.setAttribute('aria-labelledby', 'map-artist-name');
+  preview.innerHTML = `
+    <strong id="map-artist-name"></strong>
+    <button type="button" class="preview-close" aria-label="Close artist preview">×</button>
+    <p class="preview-style"></p>
+    <div class="preview-footer"><span class="preview-time"></span>
+      <button type="button" class="preview-details" aria-label="View artist details" title="View artist details">↗</button></div>`;
+  host.append(preview);
+  let previewGig = null;
+
+  const quietMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let followFrame = 0;
+  let previousPose = null;
+  function followPin(time) {
+    if (!previewGig) return;
+    const pin = pins.get(previewGig.id);
+    const x = parseFloat(pin.style.left), y = parseFloat(pin.style.top);
+    const w = preview.offsetWidth, h = preview.offsetHeight;
+    const width = host.clientWidth, height = host.clientHeight;
+    const visible = pin.style.visibility !== 'hidden' && x >= 0 && x <= width && y >= 0 && y <= height;
+    preview.style.visibility = visible ? 'visible' : 'hidden';
+    if (visible) {
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi,v));
+      const below = y < h + 24;
+      const left = clamp(x - w / 2, 8, width - w - 8);
+      const top = clamp(below ? y + 17 : y - h - 17, 6, height - h - 6);
+      const last = previousPose;
+      const ease = !last || quietMotion.matches ? 1 : 1 - Math.exp(-(time-last.time)/55);
+      const dx = last ? clamp((last.x-left)*(1-ease), -9, 9) : 0;
+      const dy = last ? clamp((last.y-top)*(1-ease), -5, 5) : 0;
+      preview.dataset.below = String(below);
+      preview.style.setProperty('--tail-x', clamp(x-left-dx, 12, w-12)+'px');
+      preview.style.transform = `translate3d(${left+dx}px,${top+dy}px,0) perspective(500px) rotateY(${-dx*.6}deg) rotateX(${dy*.6}deg)`;
+      previousPose = {x:left+dx, y:top+dy, time};
+    } else previousPose = null;
+    followFrame = requestAnimationFrame(followPin);
+  }
+
+  function closePreview(restoreFocus = false) {
+    if (!previewGig) return;
+    const trigger = pins.get(previewGig.id);
+    trigger.setAttribute('aria-expanded', 'false');
+    preview.hidden = true;
+    cancelAnimationFrame(followFrame);
+    previousPose = null;
+    previewGig = null;
+    if (restoreFocus) trigger.focus({preventScroll:true});
+  }
+
+  function openPreview(gig) {
+    const wasOpen = previewGig === gig;
+    closePreview();
+    if (wasOpen) return;
+    select(gig.id);
+    previewGig = gig;
+    pins.get(gig.id).setAttribute('aria-expanded', 'true');
+    preview.querySelector('strong').textContent = gig.name;
+    preview.querySelector('.preview-style').textContent = gig.style;
+    preview.querySelector('.preview-time').textContent = walkSummary(gig).join('\n');
+    preview.hidden = false;
+    followPin(performance.now());
+    preview.querySelector('.preview-close').focus({preventScroll:true});
+  }
+
+  preview.querySelector('.preview-close').addEventListener('click', () => closePreview(true));
+  preview.querySelector('.preview-details').addEventListener('click', () => {
+    select(previewGig.id);
+    closePreview();
+    card.tabIndex = -1;
+    card.focus({preventScroll:true});
+    card.scrollIntoView({block:'start'});
+  });
+  document.addEventListener('keydown', event => {
+    if (previewGig && event.key === 'Escape') closePreview(true);
+  });
+  // A tap dismisses the card, while an orbit or pinch keeps it attached.
+  const surface = host.querySelector('.city-canvas');
+  let tap = null;
+  surface.addEventListener('pointerdown', e => {
+    tap = e.isPrimary && e.button === 0 ? {id:e.pointerId,x:e.clientX,y:e.clientY} : null;
+  });
+  surface.addEventListener('pointermove', e => {
+    if (tap && Math.hypot(e.clientX-tap.x,e.clientY-tap.y) > 5) tap = null;
+  });
+  surface.addEventListener('pointerup', e => {
+    if (tap?.id === e.pointerId) closePreview();
+    tap = null;
+  });
+  surface.addEventListener('pointercancel', () => { tap = null; });
+  document.addEventListener('pointerdown', event => {
+    if (previewGig && !host.contains(event.target)) closePreview();
+  });
+
   for (const g of gigs) {
     const pin = document.createElement('button');
 
@@ -149,7 +298,9 @@
       `${g.name}, ${g.style}, approximate performance area`
     );
 
-    pin.addEventListener('click', () => select(g.id));
+    pin.setAttribute('aria-controls', preview.id);
+    pin.setAttribute('aria-expanded', 'false');
+    pin.addEventListener('click', () => openPreview(g));
     host.append(pin);
     pins.set(g.id, pin);
 
@@ -402,6 +553,8 @@ radiusSlider.addEventListener('change', () => {
   function stopWalk() {
     clearInterval(walkTimer);
     walking = false;
+    walkPath = [];
+    refreshMap();
     $('#walk-start').textContent = 'Walk toward performance';
   }
 
@@ -488,6 +641,10 @@ radiusSlider.addEventListener('change', () => {
   function render() {
     const isAudience = userRole === 'audience';
     rangePanel.hidden = !isAudience;
+    if (previewGig) {
+      if (!isAudience || !available(previewGig) || distance(previewGig) > filterRadius) closePreview();
+      else preview.querySelector('.preview-time').textContent = walkSummary(previewGig).join('\n');
+    }
 
     if (!isAudience) {
       myPin.hidden = true;
@@ -592,14 +749,17 @@ radiusSlider.addEventListener('change', () => {
       $('#artist-style').textContent = g.style;
       $('#artist-location').textContent = g.place;
 
-      $('#audience-distance').textContent =
-        `\u2248 ${Math.round(distance(g))} m away`;
+      const walk = walkSummary(g)[0];
+      const minutes = walk.endsWith(' min walk');
+      $('#audience-distance').textContent = minutes ? walk.split(' ')[0] : walk;
+      $('#walk-unit').hidden = !minutes;
 
       $('#audience-connection').textContent =
         isConnected ? 'CONNECTED' : 'NEARBY';
 
-      $('#audience-timer').textContent =
-        formatTime(g.endsAt - Date.now());
+      const [mins, secs] = formatTime(g.endsAt - Date.now()).split(':');
+      $('#audience-timer').textContent = String(Number(mins));
+      $('#set-seconds').textContent = secs;
 
       card.classList.toggle('is-connected', isConnected);
 
@@ -627,7 +787,7 @@ radiusSlider.addEventListener('change', () => {
       row.setAttribute('aria-pressed', String(id === selected));
 
       row.querySelector('.gig-distance').textContent =
-        `\u2248 ${Math.round(distance(item))} m`;
+        walkSummary(item).join(' · ');
     });
 
     pins.forEach((pin, id) => {
@@ -873,6 +1033,12 @@ radiusSlider.addEventListener('change', () => {
 
     if (distance(target) <= filterRadius) selected = target.id;
 
+    const route = routeTo(target);
+    if (!route || !route.path.length) {
+      toast(route ? 'You are already here.' : 'No walking route available.');
+      return;
+    }
+    walkPath = route.path;
     walking = true;
     $('#walk-start').textContent = 'Stop walking';
     render();
@@ -884,8 +1050,8 @@ radiusSlider.addEventListener('change', () => {
         return;
       }
 
-      const dx = target.ground[0] - position.x;
-      const dz = target.ground[1] - position.z;
+      const dx = walkPath[0][0] - position.x;
+      const dz = walkPath[0][1] - position.z;
       const d = Math.hypot(dx, dz);
       const step = Math.min(4, d);
 
@@ -894,14 +1060,18 @@ radiusSlider.addEventListener('change', () => {
         position.z += dz / d * step;
       }
 
-      if (d <= 4) stopWalk();
+      if (d <= 4) {
+        const [x,z] = walkPath.shift();
+        position = {x,z};
+        if (!walkPath.length) stopWalk();
+      }
       render();
     }, 80);
   });
 
   $('#walk-reset').addEventListener('click', () => {
     stopWalk();
-    position = { x: -170, z: 160 };
+    position = { x: -76, z: 160 };
     render();
   });
 
@@ -1933,6 +2103,7 @@ radiusSlider.addEventListener('change', () => {
       active: userRole === 'audience',
       gigs: filteredGigs(),
       position,
+      walkPath,
       pins,
       myPin
     }),

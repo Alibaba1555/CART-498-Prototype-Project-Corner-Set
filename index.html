@@ -106,7 +106,7 @@
             <div class="audience-heading"><div><p class="eyebrow">FOLLOW THE MUSIC</p><h3>Your next live moment.</h3></div><span class="you-key">● You</span></div>
             <p id="nearby-status" class="small muted" role="status">Explore nearby performances.</p>
             <div id="performance-card" class="performance-card">
-              <div class="section-top"><span id="audience-connection" class="tag">NEARBY</span><span id="audience-distance" class="small muted"></span></div>
+              <div class="section-top"><span id="audience-connection" class="tag">NEARBY</span></div>
               <div class="profile-row"><span id="artist-avatar" class="avatar">A</span><div><h3 id="artist-name">Alex</h3><p id="artist-style" class="small muted"></p></div></div>
               <p id="artist-location" class="small muted"></p>
               <details class="artist-details"><summary>About the artist</summary>
@@ -121,7 +121,10 @@
               </a>
             </div>
               </details>
-              <div class="audience-time"><span class="eyebrow">TIME REMAINING</span><strong id="audience-timer">20:00</strong></div>
+              <div class="audience-time">
+                <div><span class="metric-label">Walk time</span><strong id="audience-distance"></strong> <small id="walk-unit">min</small></div>
+                <div><span class="metric-label">Set remaining</span><strong id="audience-timer">20</strong> <small>min</small> <strong id="set-seconds">00</strong> <small>sec</small></div>
+              </div>
               <button id="tip-open" class="primary" type="button">Leave a tip <span aria-hidden="true">♡</span></button>
               <p class="footnote">Connect nearby to support the performer.</p>
             </div>

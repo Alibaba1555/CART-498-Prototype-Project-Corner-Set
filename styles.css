@@ -823,3 +823,21 @@ dialog button { margin-top: 12px; }
 /* Emphasize each tip; the running total lives in the footer. */
 .tip-playing-front strong {font-size:40px;font-weight:500;line-height:1.05;letter-spacing:-1px;}
 .tip-playing-front {gap:17px;}
+
+/* Keep the two decisions together: how far to walk and how long the set lasts. */
+#performance-card > .audience-time {
+  display: grid;
+  grid-template-columns: minmax(0, .85fr) minmax(0, 1.25fr);
+  align-items: start;
+  gap: 10px;
+}
+#performance-card .audience-time > div + div { border-left: 1px solid var(--line); padding-left: 12px; }
+#performance-card .metric-label { display:block; margin-bottom: 5px; font-size: 11px; color: var(--muted); }
+#performance-card .audience-time strong { color: var(--accent); font-size: clamp(21px, 5vw, 27px); font-weight: 550; line-height: 1.1; }
+#performance-card .audience-time > div + div strong { color: #805977; }
+:root[data-theme="night"] #performance-card .audience-time > div + div strong { color: #dab3d1; }
+#performance-card .audience-time small { color: var(--muted); font-size: 11px; }
+#performance-card > .profile-row { padding-top: 12px; }
+#performance-card > .mt-help { order: 9; margin: 5px 0 8px; }
+#performance-card > .encore-status { order: 6; }
+#performance-card > .artist-details { order: 10; }
