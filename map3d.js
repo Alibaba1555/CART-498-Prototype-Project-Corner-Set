@@ -72,7 +72,29 @@
       addBuilding(block,left+W*.50,right,far-25,far,1);
     }
   });
-  BUILDINGS.forEach((b,i)=>{b.variant=i%3;});
+  // Give each room a stable light so rotating the model never changes occupancy.
+  let roomSeed = 498;
+  function roomSample() {
+    roomSeed = (Math.imul(roomSeed, 1664525) + 1013904223) >>> 0;
+    return roomSeed / 4294967296;
+  }
+  const windowTints = ['#d5aa78', '#edc993', '#ac906e', '#aac2ca'];
+  BUILDINGS.forEach((building, index) => {
+    building.variant = index % 3;
+    building.windows = {};
+    const occupancy = 0.25 + roomSample() * 0.28;
+    for (const side of ['back', 'front', 'left', 'right']) {
+      const span = side === 'back' || side === 'front' ? building.w : building.d;
+      const cols = Math.max(2, Math.min(5, Math.round(span / 17)));
+      building.windows[side] = Array.from({length: building.floors}, () =>
+        Array.from({length: cols}, () => roomSample() < occupancy
+          ? windowTints[Math.floor(roomSample() * windowTints.length)] : '#213041'));
+    }
+  });
+  const streetLamps = [
+    {x:-85,z:-86}, {x:-67,z:15}, {x:-34,z:63},
+    {x:67,z:-24}, {x:85,z:95}, {x:117,z:-59}
+  ];
   const TREES = BLOCKS.filter(b=>b.park).flatMap(b=>{
     const xs=[b.x0+20,b.x1-20],zs=[b.z0+18,b.z1-18];
     return xs.flatMap((x,i)=>zs.map((z,j)=>({x,z,r:7+(i+j)%3,h:15+(i*2+j)*2})));
@@ -93,8 +115,8 @@
   }
   let night = document.documentElement.dataset.theme === 'night';
   const nightPalette = {
-    '#cdd2d5':'#697b8c', '#e0e4e6':'#465564', '#f1f3f4':'#617181',
-    '#d4dadd':'#394959', '#e6eaec':'#526373', '#ffffff':'#8292a0',
+    '#cdd2d5':'#697b8c', '#e0e4e6':'#283544', '#f1f3f4':'#374858',
+    '#d4dadd':'#202d3d', '#e6eaec':'#304051', '#ffffff':'#536679',
     '#c9d0d4':'#81909d', '#bac5cc70':'#c7dcd64d', '#e8737930':'#ef87933d',
     '#d87b8066':'#f49aa188', '#e4e8ea':'#303e4b', '#d6dcdf':'#536371',
     '#f8f9fa':'#23303d', '#eef0f1':'#3b4a58', '#aab4bd28':'#070f1966'
@@ -124,8 +146,8 @@
     if(f.side==='top') {
       const b=f.b,h=b.floors*FLOOR;
       const x=b.x-b.w/2+4,X=b.x+b.w/2-4,z=b.z-b.d/2+4,Z=b.z+b.d/2-4;
-      polygon([[x,h,z],[X,h,z],[X,h,Z],[x,h,Z]],night?'#748795':'#f0f3f4',night?'#8c9da8':'#e1e6e8',.65);
-      line([[x,h,Z],[x,h,z],[X,h,z]],night?'#596d7e':'#d4dde1',1.1);
+      polygon([[x,h,z],[X,h,z],[X,h,Z],[x,h,Z]],night?'#475a6c':'#f0f3f4',night?'#5d7181':'#e1e6e8',.65);
+      line([[x,h,Z],[x,h,z],[X,h,z]],night?'#334555':'#d4dde1',1.1);
       if(b.floors>=4 || b.variant===1) {
         const inset={x:b.x+6,z:b.z-5,w:b.w*.38,d:b.d*.35,floors:0.24};
         boxFaces(inset).sort((a,b)=>a.depth-b.depth).forEach(face=>{
@@ -137,13 +159,14 @@
     const a=f.p[0],b=f.p[1],h=f.b.floors*FLOOR;
     for(let floor=1;floor<f.b.floors;floor++) line([[a[0],floor*FLOOR,a[2]],[b[0],floor*FLOOR,b[2]]],(night?'#71849355':'#d2dadd65'),.5);
     for(let floor=0;floor<f.b.floors;floor++) {
-      const cols=Math.max(2,Math.min(5,Math.round(Math.hypot(b[0]-a[0],b[2]-a[2])/17)));
+      const windows = f.b.windows[f.side][floor];
+      const cols = windows.length;
       for(let column=0;column<cols;column++) {
         const step=.84/cols,u=.08+column*step,v=u+step*(f.b.variant===2?.62:.46);
         polygon([[a[0]+(b[0]-a[0])*u,floor*FLOOR+7,a[2]+(b[2]-a[2])*u],
           [a[0]+(b[0]-a[0])*v,floor*FLOOR+7,a[2]+(b[2]-a[2])*v],
           [a[0]+(b[0]-a[0])*v,floor*FLOOR+16,a[2]+(b[2]-a[2])*v],
-          [a[0]+(b[0]-a[0])*u,floor*FLOOR+16,a[2]+(b[2]-a[2])*u]],(night?'#a9bdc52e':f.b.featured?'#a5b5bf65':'#b3c0c947'),null);
+          [a[0]+(b[0]-a[0])*u,floor*FLOOR+16,a[2]+(b[2]-a[2])*u]],(night?windows[column]:f.b.featured?'#a5b5bf65':'#b3c0c947'),null);
       }
     }
     if(f.b.featured) {
@@ -320,7 +343,7 @@ function getMapTargets(audience) {
 
   // Fixed architectural lighting, with a subtle darkening near the ground.
   function drawFacade(f) {
-    polygon(f.p,f.color,night?'#657b8b':'#c9d3d9',.55);
+    polygon(f.p,f.color,night?'#435463':'#c9d3d9',.55);
     if(f.side==='top') return;
     const pts=f.p.map(project);
     const top=Math.min(...pts.map(p=>p.y)),bottom=Math.max(...pts.map(p=>p.y));
@@ -350,9 +373,35 @@ function getMapTargets(audience) {
     line([[t.x,0,t.z],[t.x,t.h,t.z]],night?'#7c897b':'#a8b3a8',2*scale);
     const r=t.r*scale;
     const g=ctx.createRadialGradient(c.x-r*.3,c.y-r*.35,r*.1,c.x,c.y,r);
-    g.addColorStop(0,night?'#789386':'#d5e3d6');
-    g.addColorStop(1,night?'#405f51':'#a7c0ad');
+    g.addColorStop(0,night?'#56766b':'#d5e3d6');
+    g.addColorStop(1,night?'#283e39':'#a7c0ad');
     ctx.beginPath();ctx.ellipse(c.x,c.y,r,r*.90,0,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+  }
+  function drawLampPool(lamp) {
+    const p = project([lamp.x, -2, lamp.z]);
+    const scale = Math.min(width/410, height/440) * view.zoom;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.scale(scale, scale * Math.sin(view.pitch));
+    const pool = ctx.createRadialGradient(0, 0, 0, 0, 0, 19);
+    pool.addColorStop(0, 'rgba(255,202,135,0.32)');
+    pool.addColorStop(0.45, 'rgba(248,191,122,0.16)');
+    pool.addColorStop(1, 'rgba(248,191,122,0)');
+    ctx.fillStyle = pool;
+    ctx.fillRect(-19, -19, 38, 38);
+    ctx.restore();
+  }
+  function drawStreetLamp(lamp) {
+    const base = [lamp.x, 0, lamp.z], head = [lamp.x, 13, lamp.z];
+    const p = project(head);
+    const scale = Math.min(width/410, height/440) * view.zoom;
+    line([base, head], '#71808a', scale);
+    const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 6 * scale);
+    halo.addColorStop(0, '#ffdfab');
+    halo.addColorStop(0.22, '#ffe0ada0');
+    halo.addColorStop(1, '#ffd29a00');
+    ctx.fillStyle = halo;
+    ctx.fillRect(p.x - 6*scale, p.y - 6*scale, 12*scale, 12*scale);
   }
   function draw(time=0) {
     ctx.clearRect(0,0,width,height);
@@ -380,7 +429,7 @@ function getMapTargets(audience) {
             const a=i*Math.PI/24;return [mx+radius*Math.cos(a),y,mz+radius*Math.sin(a)];
           });
           polygon(circle(19,.3),night?'#2e3e49':'#bcc8cf',null);
-          polygon(circle(17,3),night?'#899ca6':'#f8fafb',night?'#657d8a':'#c4ced4',.7);
+          polygon(circle(17,3),night?'#596e7d':'#f8fafb',night?'#657d8a':'#c4ced4',.7);
           polygon(circle(13.5,3.1),night?'#477680':'#b8dadd',null);
           const seconds=reduced.matches?0:time/1000;
           // Expanding rings and travelling droplets share the map animation clock.
@@ -441,8 +490,15 @@ function getMapTargets(audience) {
     // with another building's roof based on their different heights.
     const scene=[...BUILDINGS.map(b=>({building:b,depth:project([b.x,0,b.z]).depth})),
       ...TREES.map(t=>({tree:t,depth:project([t.x,0,t.z]).depth}))];
+    if (night) {
+      for (const lamp of streetLamps) {
+        drawLampPool(lamp);
+        scene.push({lamp, depth: project([lamp.x, 0, lamp.z]).depth});
+      }
+    }
     scene.sort((a,b)=>a.depth-b.depth).forEach(item=>{
-      if(item.tree)drawTree(item.tree);
+      if(item.lamp)drawStreetLamp(item.lamp);
+      else if(item.tree)drawTree(item.tree);
       else boxFaces(item.building).sort((a,b)=>a.depth-b.depth).forEach(f=>{
         drawFacade(f);faceDetails(f);
       });

@@ -91,7 +91,7 @@ function isActive() {
   return session !== null && session.endedAt === null;
 }
 
-function finish(automatic = false) {
+function finish(automatic = false, showSummary = true) {
   if (!isActive()) return;
 
   session.endedAt = automatic ? session.endsAt : Date.now();
@@ -107,7 +107,7 @@ function finish(automatic = false) {
     $("#end-dialog").close("cancel");
   }
 
-  if (userRole === "performer") showScreen("finished");
+  if (showSummary && userRole === "performer") showScreen("finished");
 }
 
 function update() {
@@ -125,7 +125,10 @@ function update() {
 
   $("#publish").disabled = offline || syncing || pendingSync;
   $("#fast-forward").disabled = !active;
-  $("#start").disabled = pendingSync || syncing;
+  const start = $("#start");
+  const startLabel = active ? "Back to live set" : "Start a set";
+  if (start.textContent.trim() !== startLabel) start.textContent = startLabel;
+  start.disabled = !active && (pendingSync || syncing);
 
   let notice = "";
 
@@ -208,7 +211,7 @@ function connectionChanged() {
   update();
 }
 
-$("#start").addEventListener("click", () => showScreen("setup"));
+$("#start").addEventListener("click", () => showScreen(isActive() ? "live" : "setup"));
 $("#back").addEventListener("click", () => showScreen("home"));
 
 $("#publish").addEventListener("click", () => {
@@ -318,13 +321,9 @@ document.addEventListener("visibilitychange", update);
 // No network is required for the running timer.
 setInterval(update, 250);
 
-if (isActive()) {
-  showScreen("live", false);
-} else if (session) {
-  showScreen("finished", false);
-} else {
-  showScreen("home", false);
-}
+// Settle a timer that expired while the page was closed before opening the map.
+if (isActive() && Date.now() >= session.endsAt) finish(true, false);
+showScreen("home", false);
 
 connectionChanged();
 // Profile navigation preserves the current setup or running performance.
