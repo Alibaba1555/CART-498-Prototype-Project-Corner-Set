@@ -2402,30 +2402,53 @@ radiusSlider.addEventListener('change', () => {
   `;
   document.head.append(style);
   const groups = [
-    ['01 / Start as Performer', [
-      'Start a set → choose a duration → Go live. Alex now appears on the audience map.',
-      'Try +15 MIN and check the countdown.',
-      'Single-tap the avatar: view the profile and toggle Night mode. Return to your set.'
-    ]],
-    ['02 / Explore as Audience', [
-      'Double-tap the avatar, or use Switch to Audience.',
-      'Drag / zoom the map, adjust the distance filter and select nearby artists.',
-      'Choose Alex under Walk toward → start walking. Check the automatic connection.',
-      'Play Alex’s preview. Try Leave a tip and follow the simulated payment steps.',
-      'Request an encore: enter 1–30 minutes and an optional song.',
-      'Create a Moment Ticket, watch it print, then open and delete it.'
-    ]],
-    ['03 / Respond & finish', [
-      'Switch to Performer → accept the encore. Check the song and added time.',
-      'Send another request as Audience, then decline it as Performer. Time stays unchanged.',
-      'Simulate offline, then reconnect. Reset your walk to test disconnection.',
-      'End set: try Keep playing, then confirm End set. Alex disappears from the audience map.',
-      'Start another set → Jump to last 10 seconds to test automatic ending.'
-    ]]
-  ];
+  [
+    "01 / Go live",
+    [
+      "Start a set → choose a duration → Go live.",
+      "Double-tap the timer: +10 min and a wave response.",
+      "Open your profile. Try Night mode."
+    ]
+  ],
+  [
+    "02 / Explore & listen",
+    [
+      "Switch to Audience. Rotate, zoom, and reset the map.",
+      "Try the range filter, artist pins, and grouped “2” marker.",
+      "Open Alex’s profile details. Play / pause the preview.",
+      "Walk toward Alex to connect automatically."
+    ]
+  ],
+  [
+    "03 / Tip & save",
+    [
+      "Try tipping: cancel once, then complete a demo payment.",
+      "Save a Moment Ticket. Watch it print.",
+      "Open My Moments in your profile. View and delete the ticket.",
+      "Switch to Performer. Check the tip cards and total; try +$5."
+    ]
+  ],
+  [
+    "04 / Encore",
+    [
+      "As Audience, send two requests: with and without a song.",
+      "As Performer, browse requests. Accept one; decline the other.",
+      "Check the added time, pending count, and History."
+    ]
+  ],
+  [
+    "05 / Finish & reset",
+    [
+      "As Audience, reset your position, then walk back to reconnect.",
+      "Try offline / online and Reset other artists’ timers.",
+      "As Performer, try End set → Keep playing, then end the set.",
+      "Start a new set. Jump to last 10 seconds and let it finish."
+    ]
+  ]
+];
   const guide = document.createElement('section'); guide.className = 'test-guide'; guide.setAttribute('aria-label', 'Prototype testing checklist');
-  guide.innerHTML = '<h2>Try Corner Set.</h2><p>Follow the steps and tick each one as you test. Payments and walking are simulated.</p>';
-  const key = 'corner-set-test-checklist-v1';
+  guide.innerHTML = '<h2>Try Corner Set.</h2><p>Try each step, then tick it off. Walking and payments are simulated.</p>';
+  const key = 'corner-set-test-checklist-v3-compact';
   let checked = [];
   try { const stored = JSON.parse(sessionStorage.getItem(key) || '[]'); if (Array.isArray(stored)) checked = stored; } catch {}
   let index = 0;
