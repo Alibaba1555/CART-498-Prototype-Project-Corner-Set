@@ -2643,3 +2643,98 @@ radiusSlider.addEventListener('change', () => {
   reset.addEventListener('click', () => { guide.querySelectorAll('input').forEach(input => { input.checked = false; }); updateChecklist(); });
   updateChecklist();
 })();
+
+/* Slide to publish. The existing button still handles keyboard activation
+   and owns the session, offline checks and transition to the live timer. */
+(() => {
+  const button = document.getElementById('publish');
+  const app = button.closest('.app');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const style = document.createElement('style');
+  style.textContent = `
+    #publish.slide-live { position:relative; isolation:isolate; width:100%; height:58px; padding:0;
+      overflow:hidden; background:#153040; color:white; border:1px solid #254a59; touch-action:pan-y;
+      user-select:none; cursor:grab; --p:0; --x:0px; }
+    #publish.slide-live:active { transform:none; cursor:grabbing; }
+    .slide-live .live-current { position:absolute; inset:0; pointer-events:none;
+      background:repeating-radial-gradient(ellipse 36px 68px at calc(26px + var(--x)) 52%,transparent 0 10px,#65e5de 11px 13px,transparent 14px 20px,#ad9ae8 21px 23px,transparent 24px 31px,#ffa5b5 32px 34px,transparent 35px 41px);
+      opacity:calc(var(--p) * .86); }
+    .slide-live .live-label { position:relative; font-size:15px; font-weight:600; text-shadow:0 1px 4px #172738; }
+    .slide-live .live-handle { position:absolute; left:5px; top:5px; bottom:5px; width:46px;
+      display:grid; place-items:center; background:#b8f6e8; color:#173341; font-size:23px;
+      clip-path:polygon(0 0,78% 0,100% 50%,78% 100%,0 100%); transform:translateX(var(--x)); }
+    .slide-live .live-end {position:absolute; right:14px; top:50%; transform:translateY(-50%); opacity:.65;}
+    .live-wipe {position:fixed; z-index:9999; pointer-events:none; overflow:hidden;}
+    .live-wipe i {position:absolute; inset:0; clip-path:circle(0 at var(--origin-x) var(--origin-y));}
+  `;
+  document.head.append(style);
+  button.classList.add('slide-live');
+  button.innerHTML = '<span class="live-current"></span><span class="live-label">Slide to go live</span><span class="live-end" aria-hidden="true">»</span><span class="live-handle" aria-hidden="true">›</span>';
+  button.setAttribute('aria-label','Go live');
+  button.title = 'Slide right, or focus and press Enter or Space';
+  let pointer = null, startX = 0, progress = 0, committing = false, publishNow = false;
+  const travel = () => Math.max(1, button.clientWidth - 56);
+  function paint(value) {
+    progress = Math.min(1, Math.max(0,value));
+    button.style.setProperty('--x', progress * travel() + 'px');
+    button.style.setProperty('--p', progress);
+  }
+  function reset() { pointer = null; paint(0); }
+  async function commit() {
+    if (committing || button.disabled) return;
+    committing = true;
+    paint(1);
+    const bounds = app.getBoundingClientRect();
+    const handle = button.querySelector('.live-handle').getBoundingClientRect();
+    const wipe = document.createElement('div');
+    wipe.className = 'live-wipe';
+    Object.assign(wipe.style,{left:bounds.left+'px',top:bounds.top+'px',width:bounds.width+'px',height:bounds.height+'px'});
+    wipe.style.setProperty('--origin-x',handle.left + handle.width/2 - bounds.left + 'px');
+    wipe.style.setProperty('--origin-y',handle.top + handle.height/2 - bounds.top + 'px');
+    const radius = Math.ceil(Math.hypot(bounds.width,bounds.height));
+    try {
+      if (!reduced.matches && wipe.animate) {
+        document.body.append(wipe);
+        const waves = ['#7bdfd4','#a59acb','#182e3c'].map((color,index) => {
+          const layer = document.createElement('i');
+          layer.style.background = color;
+          wipe.append(layer);
+          return layer.animate([{clipPath:'circle(0px at var(--origin-x) var(--origin-y))'},
+            {clipPath:`circle(${radius}px at var(--origin-x) var(--origin-y))`}],
+            {duration:380,delay:index*55,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'}).finished;
+        });
+        await Promise.all(waves);
+      }
+      if (!button.disabled && button.getClientRects().length) {
+        publishNow = true;
+        button.click();
+        publishNow = false;
+      }
+      if (wipe.isConnected) await wipe.animate([{opacity:1},{opacity:0}],{duration:240,fill:'forwards'}).finished;
+    } finally { wipe.remove(); publishNow = false; committing = false; reset(); }
+  }
+  button.addEventListener('click', event => {
+    if (publishNow) return;
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    if (event.detail === 0) commit();
+  }, true);
+  button.addEventListener('pointerdown', event => {
+    if (!event.isPrimary || event.button !== 0 || committing || button.disabled) return;
+    if (event.clientX - button.getBoundingClientRect().left > 58) return;
+    pointer = event.pointerId; startX = event.clientX;
+    button.setPointerCapture(pointer);
+  });
+  button.addEventListener('pointermove', event => {
+    if (pointer === event.pointerId) paint((event.clientX-startX)/travel());
+  });
+  button.addEventListener('pointerup', event => {
+    if (pointer !== event.pointerId) return;
+    paint((event.clientX-startX)/travel());
+    pointer = null;
+    if (progress >= .95 && !button.disabled) commit(); else reset();
+  });
+  for (const type of ['pointercancel','lostpointercapture']) {
+    button.addEventListener(type,event => { if (pointer === event.pointerId) reset(); });
+  }
+})();
