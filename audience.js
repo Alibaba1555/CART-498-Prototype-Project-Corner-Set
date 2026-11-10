@@ -2576,18 +2576,20 @@ radiusSlider.addEventListener('change', () => {
   [
     "01 / Go live",
     [
-      "Start a set → choose a duration → Go live.",
-      "Double-tap the timer: +10 min and a wave response.",
-      "Open your profile. Try Night mode."
+      "Pick a duration. Slide to go live.",
+      "Double-tap the timer to add 10 min.",
+      "Try Studio, Flyer, and Vinyl in Profile.",
+      "Choose Flyer. Check Night mode and lit windows."
     ]
   ],
   [
     "02 / Explore & listen",
     [
-      "Switch to Audience. Rotate, zoom, and reset the map.",
-      "Try the range filter, artist pins, and grouped “2” marker.",
-      "Open Alex’s profile details. Play / pause the preview.",
-      "Walk toward Alex to connect automatically."
+      "Switch to Audience. Rotate and zoom the map.",
+      "Filter by range. Tap the “2” to zoom in.",
+      "Tap a pin. Compare walk time and set time.",
+      "Open Alex’s details and play the preview.",
+      "Follow the street route to Alex. Check the connection."
     ]
   ],
   [
@@ -2613,7 +2615,8 @@ radiusSlider.addEventListener('change', () => {
       "As Audience, reset your position, then walk back to reconnect.",
       "Try offline / online and Reset other artists’ timers.",
       "As Performer, try End set → Keep playing, then end the set.",
-      "Start a new set. Jump to last 10 seconds and let it finish."
+      "Jump to the last 10 seconds. Let the set finish.",
+      "Reload to return to the map."
     ]
   ]
 ];
@@ -2622,6 +2625,12 @@ radiusSlider.addEventListener('change', () => {
   const key = 'corner-set-test-checklist-v3-compact';
   let checked = [];
   try { const stored = JSON.parse(sessionStorage.getItem(key) || '[]'); if (Array.isArray(stored)) checked = stored; } catch {}
+  // Keep previous checkmarks aligned when opening the expanded checklist.
+  if (checked.length === 18) {
+    checked.splice(3, 0, false);
+    checked.splice(6, 0, false);
+    checked.push(false);
+  }
   let index = 0;
   groups.forEach(([title, steps], groupIndex) => {
     const section = document.createElement('details'); section.open = groupIndex === 0;
