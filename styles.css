@@ -57,7 +57,15 @@ button:disabled {
 }
 
 .intro p { line-height: 1.8; color: var(--muted); }
-.intro-line { width: 50px; height: 2px; background: var(--cyan); margin: 36px 0; }
+.intro h1 { margin-bottom: 14px; }
+.intro .intro-author { margin: 0; line-height: 1.4; }
+.intro .intro-role { margin: 6px 0 32px; font-size: 12px; line-height: 1.5; }
+.intro-role::before {
+  content: ""; display: inline-block; width: 6px; height: 6px;
+  margin-right: 7px; vertical-align: .12em; border-radius: 50%; background: var(--cyan);
+}
+.intro-audience, .workspace:has(#audience-home:not([hidden])) .intro-performer { display: none; }
+.workspace:has(#audience-home:not([hidden])) .intro-audience { display: inline; }
 
 .app {
   background: var(--surface);

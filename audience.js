@@ -2618,7 +2618,7 @@ radiusSlider.addEventListener('change', () => {
   ]
 ];
   const guide = document.createElement('section'); guide.className = 'test-guide'; guide.setAttribute('aria-label', 'Prototype testing checklist');
-  guide.innerHTML = '<h2>Try Corner Set.</h2><p>Try each step, then tick it off. Walking and payments are simulated.</p>';
+  guide.innerHTML = '<p>Corner Set is a UI/UX project focused on interaction design, interactive prototyping, and user experience testing.</p><p>It helps street musicians share where they’re playing and lets listeners discover nearby live sets on a map.</p>';
   const key = 'corner-set-test-checklist-v3-compact';
   let checked = [];
   try { const stored = JSON.parse(sessionStorage.getItem(key) || '[]'); if (Array.isArray(stored)) checked = stored; } catch {}
