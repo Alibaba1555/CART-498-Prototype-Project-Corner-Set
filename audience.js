@@ -2652,28 +2652,33 @@ radiusSlider.addEventListener('change', () => {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const style = document.createElement('style');
   style.textContent = `
-    #publish.slide-live { position:relative; isolation:isolate; width:100%; height:58px; padding:0;
-      overflow:hidden; background:#153040; color:white; border:1px solid #254a59; touch-action:pan-y;
+    #publish.slide-live { position:relative; isolation:isolate; width:100%; height:50px; padding:0;
+      overflow:hidden; background:var(--soft); color:var(--text); border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line)); touch-action:pan-y;
       user-select:none; cursor:grab; --p:0; --x:0px; }
     #publish.slide-live:active { transform:none; cursor:grabbing; }
-    .slide-live .live-current { position:absolute; inset:0; pointer-events:none;
-      background:repeating-radial-gradient(ellipse 36px 68px at calc(26px + var(--x)) 52%,transparent 0 10px,#65e5de 11px 13px,transparent 14px 20px,#ad9ae8 21px 23px,transparent 24px 31px,#ffa5b5 32px 34px,transparent 35px 41px);
-      opacity:calc(var(--p) * .86); }
-    .slide-live .live-label { position:relative; font-size:15px; font-weight:600; text-shadow:0 1px 4px #172738; }
-    .slide-live .live-handle { position:absolute; left:5px; top:5px; bottom:5px; width:46px;
-      display:grid; place-items:center; background:#b8f6e8; color:#173341; font-size:23px;
-      clip-path:polygon(0 0,78% 0,100% 50%,78% 100%,0 100%); transform:translateX(var(--x)); }
-    .slide-live .live-end {position:absolute; right:14px; top:50%; transform:translateY(-50%); opacity:.65;}
+    #publish .live-label, #publish .live-end, #publish .live-handle {
+      position:absolute; display:grid; place-items:center; top:50%; margin:0; padding:0;
+      line-height:1; transform:translateY(-50%); pointer-events:none;
+    }
+    #publish .live-label {left:0; right:0; font-size:15px; font-weight:600; opacity:clamp(0,calc(1 - var(--p) * 3.6),1);}
+    #publish .live-end {right:14px; color:var(--accent);}
+    #publish.slide-live {border-radius:0;}
+    #publish .live-handle {left:0; width:48px; height:48px; background:var(--accent);
+      color:var(--surface); transform:translate(var(--x),-50%); border-radius:0;}
+    #publish .live-handle::before {content:""; width:3px; height:14px; border-radius:2px;
+      background:currentColor; box-shadow:6px 0 currentColor; opacity:.85; margin-right:6px;}
+    #publish .live-end {width:9px;height:9px;border:1px solid currentColor;border-radius:50%; opacity:.6;}
+
     .live-wipe {position:fixed; z-index:9999; pointer-events:none; overflow:hidden;}
     .live-wipe i {position:absolute; inset:0; clip-path:circle(0 at var(--origin-x) var(--origin-y));}
   `;
   document.head.append(style);
   button.classList.add('slide-live');
-  button.innerHTML = '<span class="live-current"></span><span class="live-label">Slide to go live</span><span class="live-end" aria-hidden="true">»</span><span class="live-handle" aria-hidden="true">›</span>';
+  button.innerHTML = '<span class="live-label">Slide to go live</span><span class="live-end" aria-hidden="true"></span><span class="live-handle" aria-hidden="true"></span>';
   button.setAttribute('aria-label','Go live');
   button.title = 'Slide right, or focus and press Enter or Space';
   let pointer = null, startX = 0, progress = 0, committing = false, publishNow = false;
-  const travel = () => Math.max(1, button.clientWidth - 56);
+  const travel = () => Math.max(1, button.clientWidth - 48);
   function paint(value) {
     progress = Math.min(1, Math.max(0,value));
     button.style.setProperty('--x', progress * travel() + 'px');
@@ -2721,7 +2726,7 @@ radiusSlider.addEventListener('change', () => {
   }, true);
   button.addEventListener('pointerdown', event => {
     if (!event.isPrimary || event.button !== 0 || committing || button.disabled) return;
-    if (event.clientX - button.getBoundingClientRect().left > 58) return;
+    if (event.clientX - button.getBoundingClientRect().left > 48) return;
     pointer = event.pointerId; startX = event.clientX;
     button.setPointerCapture(pointer);
   });

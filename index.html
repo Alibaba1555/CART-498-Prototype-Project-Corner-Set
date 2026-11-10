@@ -8,6 +8,8 @@
   <title>Corner Set — Performer Prototype</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="map3d.css">
+  <link rel="stylesheet" href="themes.css">
+  <script src="themes.js" defer></script>
   <script src="script.js" defer></script>
   <script src="audience.js" defer></script>
   <script src="map3d.js" defer></script>
@@ -72,6 +74,11 @@
               <div><strong>Night mode</strong><p id="theme-description" class="small muted">A softer view after sunset.</p></div>
               <button id="theme-toggle" class="theme-switch" type="button" role="switch" aria-checked="false" aria-label="Night mode" aria-describedby="theme-description"><span aria-hidden="true"></span></button>
             </div>
+            <fieldset class="palette-picker"><legend>Theme</legend>
+              <label><input type="radio" name="palette" value="studio" checked><span class="palette-card" style="--a:#087f96;--b:#d3e8eb;--c:#263341"><i aria-hidden="true"></i>Studio</span></label>
+              <label><input type="radio" name="palette" value="flyer"><span class="palette-card" style="--a:#152957;--b:#e4ff31;--c:#ff659c"><i aria-hidden="true"></i>Flyer</span></label>
+              <label><input type="radio" name="palette" value="vinyl"><span class="palette-card" style="--a:#385643;--b:#d5c9b2;--c:#493548"><i aria-hidden="true"></i>Vinyl</span></label>
+            </fieldset>
           </div>
         </section>
         <!-- HOME -->
