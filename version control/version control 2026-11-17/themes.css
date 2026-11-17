@@ -1,0 +1,61 @@
+.palette-picker { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; min-width:0; margin:20px 0 0; padding:0; border:0; }
+.palette-picker legend { margin-bottom:10px; padding:0; font-size:14px; font-weight:600; }
+.palette-picker label { position:relative; cursor:pointer; }
+.palette-picker input { position:absolute; opacity:0; width:1px; height:1px; }
+.palette-card { display:grid; gap:8px; padding:9px; border:1px solid var(--line); color:var(--text); font-size:12px; background:var(--surface); }
+.palette-card i { height:15px; background:linear-gradient(90deg,var(--a) 0 50%,var(--b) 50% 80%,var(--c) 80%); }
+.palette-picker :checked + span { border-color:var(--accent); box-shadow:inset 0 -2px var(--accent); }
+.palette-picker :focus-visible + span { outline:2px solid var(--accent); outline-offset:2px; }
+
+:root[data-palette="flyer"] {
+  --background:#0a1535; --surface:#152957; --text:#fffdf0; --muted:#bdcbe5; --line:#4a6090;
+  --accent:#e4ff31; --cyan:#59f0bd; --soft:#223967; --button-text:#101e40;
+  --flyer-pink:#ff659c; --flyer-ink:#101e40;
+  --flyer-display:Impact,Haettenschweiler,"Arial Narrow","Arial Black",sans-serif;
+}
+:root[data-palette="flyer"][data-theme="night"] {
+  --background:#060d20; --surface:#101c39; --text:#f1f3e7; --muted:#adbedb; --line:#384c72;
+  --accent:#d5e950; --cyan:#77d6b2; --soft:#1d2b4a; --button-text:#0a142d;
+}
+:root[data-palette="vinyl"] {
+  --background:#e8ece5; --surface:#faf8f0; --text:#2e382e; --muted:#5f695d; --line:#ccd2c4;
+  --accent:#385643; --cyan:#708662; --soft:#e4eadc; --button-text:#fffdf5;
+}
+:root[data-palette="vinyl"][data-theme="night"] {
+  --background:#191e1b; --surface:#242d27; --text:#f0efdf; --muted:#bac5b5; --line:#455348;
+  --accent:#acc6a4; --cyan:#b9a7ba; --soft:#344439; --button-text:#172419;
+}
+[data-palette="flyer"] .workspace :is(h1,h2,h3) {font-family:"Arial Narrow","Franklin Gothic Medium",Arial,sans-serif;font-weight:800;letter-spacing:-.035em;}
+[data-palette="vinyl"] .workspace :is(h1,h2,h3) {font-family:Georgia,"Times New Roman",serif;font-weight:500;}
+[data-palette="flyer"] .palette-card, [data-palette="vinyl"] .palette-card {font-family:inherit;}
+
+/* Flyer uses the typography and offset ink of a two-colour gig poster. */
+[data-palette="flyer"] .workspace :is(h1,h2,h3,#timer) {
+  font-family:var(--flyer-display); text-transform:uppercase; font-weight:900;
+  letter-spacing:.035em; word-spacing:.08em; line-height:1.12; font-weight:normal; font-synthesis:none;
+}
+[data-palette="flyer"] .intro h1 {
+  max-width:5ch; font-size:clamp(56px,6vw,86px); line-height:1.02;
+  color:var(--accent); text-shadow:3px 3px 0 var(--flyer-pink); transform:rotate(-2deg);
+}
+[data-palette="flyer"] .screen h2 {font-size:clamp(38px,6vw,52px); max-width:11ch; margin:14px 0 20px;}
+[data-palette="flyer"] :is(.eyebrow,.mode-bar,.tag,.metric-label) {font-family:"Courier New",monospace;font-weight:700;}
+[data-palette="flyer"] .app {border:2px solid var(--line);box-shadow:none;}
+[data-palette="flyer"] .app-header {border-bottom:4px solid var(--accent);}
+[data-palette="flyer"]:not([data-theme="night"]) .app-header .brand {background:#fffdf0;padding:5px 8px;transform:rotate(-2deg);}
+[data-palette="flyer"] .mode-bar {background:var(--accent);color:var(--flyer-ink);}
+[data-palette="flyer"] .mode-bar #connection {color:var(--flyer-ink);}
+[data-palette="flyer"] .map-heading {background:var(--flyer-ink);padding:7px 10px;transform:rotate(-3deg);border-left:4px solid var(--flyer-pink);}
+[data-palette="flyer"] .map-heading span {color:#fffdf0;}
+[data-palette="flyer"] .map-heading strong {font:900 18px var(--flyer-display);text-transform:uppercase;color:var(--accent);}
+[data-palette="flyer"] #profile .profile-identity {flex-direction:row-reverse;justify-content:space-between;padding:12px 0;border-block:2px solid var(--line);}
+[data-palette="flyer"] #profile .profile-identity h3 {font-size:36px;color:var(--accent);}
+[data-palette="flyer"] #setup .info-card {display:flex;flex-direction:column;align-items:flex-start;background:var(--accent);color:var(--flyer-ink);padding:16px;border:0;box-shadow:4px 4px var(--flyer-pink);}
+[data-palette="flyer"] #setup .info-card h3 {order:-1;font-size:32px;margin:0 0 8px;}
+[data-palette="flyer"] #setup .info-card :is(p,.eyebrow) {color:var(--flyer-ink);}
+[data-palette="flyer"] #setup .info-card .tag {background:var(--flyer-ink);color:var(--accent);}
+[data-palette="flyer"] .screen .primary {font-family:var(--flyer-display);font-weight:800;text-transform:uppercase;letter-spacing:.035em;}
+[data-palette="flyer"] #live #timer {color:var(--accent);font-variant-numeric:tabular-nums;}
+[data-palette="flyer"] #performance-card {border-top:4px solid var(--flyer-pink);}
+[data-palette="flyer"] #performance-card .audience-time > div + div strong {color:var(--cyan);}
+[data-palette="flyer"] .palette-card {text-transform:uppercase;font-weight:700;}
