@@ -72,6 +72,32 @@
       addBuilding(block,left+W*.50,right,far-25,far,1);
     }
   });
+  // Distinct rear blocks: corner cafe, market hall, and adapted music warehouse.
+  const rear = columns.map(([x0,x1],i)=>{
+    const block={x0,x1,z0:-300,z1:-227,row:3,col:i};
+    BLOCKS.push(block);return block;
+  });
+  addBuilding(rear[0],-198,-137,-286,-242,1);
+  BUILDINGS.at(-1).landmark='cafe';
+  addBuilding(rear[0],-130,-98,-291,-249,3);
+  addBuilding(rear[1],-53,52,-288,-249,1);
+  BUILDINGS.at(-1).landmark='market';
+  addBuilding(rear[2],100,195,-292,-245,2);
+  BUILDINGS.at(-1).landmark='warehouse';
+  // Staggered western frontage leaves a clear junction and an open waterfront.
+  const westBlock={x0:-335,x1:-247,z0:12,z1:149,row:4,col:0};
+  BLOCKS.push(westBlock);
+  addBuilding(westBlock,-326,-280,21,77,3);
+  addBuilding(westBlock,-314,-254,87,132,2);
+  BUILDINGS.at(-1).landmark='cafe';
+  // Complete the northwest corner without filling the foreground sightline.
+  for(const [z0,z1] of [[-300,-227],[-203,-62],[-38,-12]]) {
+    const b={x0:-335,x1:-247,z0,z1,row:5,col:0};BLOCKS.push(b);
+    if(z1-z0>60){
+      addBuilding(b,-326,-290,z0+9,z0+48,2);
+      addBuilding(b,-283,-257,z0+13,z1-9,1);
+    }
+  }
   // Give each room a stable light so rotating the model never changes occupancy.
   let roomSeed = 498;
   function roomSample() {
@@ -99,6 +125,13 @@
     const xs=[b.x0+20,b.x1-20],zs=[b.z0+18,b.z1-18];
     return xs.flatMap((x,i)=>zs.map((z,j)=>({x,z,r:7+(i+j)%3,h:15+(i*2+j)*2})));
   });
+  TREES.push({x:-327,z:173,r:7,h:18},{x:-253,z:298,r:6,h:16});
+  const KIOSKS=[
+    {x:-307,z:248,w:30,d:23,tone:'food'},
+    {x:-260,z:248,w:26,d:23,tone:'coffee'},
+    {x:153,z:259,w:36,d:28,tone:'coffee'}
+  ];
+  streetLamps.push({x:-239,z:155},{x:-316,z:322},{x:-248,z:322});
   const TARGET = [0, FLOOR * 3.5, 34]; // middle of floor 4, front facade
   const initial = {yaw:-0.58,pitch:0.52,zoom:1,panX:0,panY:0};
   let view = {...initial}, width=0, height=0, visible=true, frame=0;
@@ -111,7 +144,7 @@
     const cy=(y-48)*Math.cos(view.pitch)-cz*Math.sin(view.pitch);
     const depth=(y-48)*Math.sin(view.pitch)+cz*Math.cos(view.pitch);
     const scale=Math.min(width/410,height/440)*view.zoom;
-    return {x:width/2+cx*scale+view.panX,y:height*.51-cy*scale+view.panY,depth};
+    return {x:width/2+(cx-34*Math.sin(.58))*scale+view.panX,y:height*.51-cy*scale+view.panY,depth};
   }
   let night = document.documentElement.dataset.theme === 'night';
   const nightPalette = {
@@ -148,11 +181,38 @@
       const x=b.x-b.w/2+4,X=b.x+b.w/2-4,z=b.z-b.d/2+4,Z=b.z+b.d/2-4;
       polygon([[x,h,z],[X,h,z],[X,h,Z],[x,h,Z]],night?'#475a6c':'#f0f3f4',night?'#5d7181':'#e1e6e8',.65);
       line([[x,h,Z],[x,h,z],[X,h,z]],night?'#334555':'#d4dde1',1.1);
-      if(b.floors>=4 || b.variant===1) {
+      if(!b.landmark && (b.floors>=4 || b.variant===1)) {
         const inset={x:b.x+6,z:b.z-5,w:b.w*.38,d:b.d*.35,floors:0.24};
         boxFaces(inset).sort((a,b)=>a.depth-b.depth).forEach(face=>{
           polygon(face.p.map(([px,py,pz])=>[px,py+h,pz]),face.color,night?'#718595':'#dce3e6',.5);
         });
+      }
+      if(b.landmark==='market') {
+        // Three sawtooth bays; pale glazing faces the quieter rear street.
+        for(let i=0;i<3;i++){
+          const x0=x+i*(X-x)/3,x1=x+(i+1)*(X-x)/3;
+          polygon([[x0,h,z],[x1,h+9,z],[x1,h+9,Z],[x0,h,Z]],night?'#617987':'#e3ebed','#b8c6ce',.6);
+          polygon([[x1,h,z],[x1,h+9,z],[x1,h+9,Z],[x1,h,Z]],night?'#a1c4ca':'#c4dce2','#aebfc7',.5);
+        }
+      }
+      if(b.landmark==='warehouse') {
+        const chimney={x:b.x-24,z:b.z-5,w:8,d:9,floors:0.65};
+        boxFaces(chimney).sort((a,b)=>a.depth-b.depth).forEach(face=>
+          polygon(face.p.map(([x,y,z])=>[x,y+h,z]),face.color,'#9baeb8',.6));
+        const tx=b.x+20,tz=b.z-4;
+        const circle=(r,y)=>Array.from({length:33},(_,i)=>[tx+r*Math.cos(i*Math.PI/16),y,tz+r*Math.sin(i*Math.PI/16)]);
+        for(const dx of [-6,6])for(const dz of [-6,6])
+          line([[tx+dx,h,tz+dz],[tx+dx,h+9,tz+dz]],night?'#8797a1':'#aebbc1',1);
+        const faces=[];
+        for(let i=0;i<24;i++){
+          const a=i*Math.PI/12,c=(i+1)*Math.PI/12;
+          const q=[[tx+10*Math.cos(a),h+9,tz+10*Math.sin(a)],[tx+10*Math.cos(c),h+9,tz+10*Math.sin(c)],[tx+10*Math.cos(c),h+25,tz+10*Math.sin(c)],[tx+10*Math.cos(a),h+25,tz+10*Math.sin(a)]];
+          faces.push({q,depth:q.reduce((n,v)=>n+project(v).depth,0)/4});
+        }
+        faces.sort((a,b)=>a.depth-b.depth).forEach(f=>polygon(f.q,night?'#76828a':'#c5cfd2','#a1afb6',.4));
+        polygon(circle(10,h+25),night?'#8c9ba4':'#e1e7e8','#a1afb6',.6);
+        line(circle(10.2,h+13),night?'#a4b0b5':'#adbcc2',.6);
+        line(circle(10.2,h+21),night?'#a4b0b5':'#adbcc2',.6);
       }
       return;
     }
@@ -167,6 +227,21 @@
           [a[0]+(b[0]-a[0])*v,floor*FLOOR+7,a[2]+(b[2]-a[2])*v],
           [a[0]+(b[0]-a[0])*v,floor*FLOOR+16,a[2]+(b[2]-a[2])*v],
           [a[0]+(b[0]-a[0])*u,floor*FLOOR+16,a[2]+(b[2]-a[2])*u]],(night?windows[column]:f.b.featured?'#a5b5bf65':'#b3c0c947'),null);
+      }
+    }
+    if(f.side==='front' && f.b.landmark) {
+      const b=f.b,x=b.x-b.w/2+4,X=b.x+b.w/2-4,z=b.z+b.d/2;
+      if(b.landmark==='cafe') {
+        // Subdued striped canvas awning and broad ground-floor shop windows.
+        for(let i=0;i<6;i++){
+          const l=x+(X-x)*i/6,r=x+(X-x)*(i+1)/6;
+          polygon([[l,17,z],[r,17,z],[r,14,z+8],[l,14,z+8]],
+            i%2?(night?'#8daba4':'#bccfc8'):(night?'#bdc9c5':'#eef1eb'),'#a7b8b3',.35);
+        }
+      } else {
+        polygon([[x+4,5,z+.1],[X-4,5,z+.1],[X-4,17,z+.1],[x+4,17,z+.1]],
+          night?'#b5b994':'#c6d5db',null);
+        for(let px=x+10;px<X-4;px+=14)line([[px,5,z+.2],[px,17,z+.2]],night?'#6e818c':'#eef1f2',1);
       }
     }
     if(f.b.featured) {
@@ -403,12 +478,187 @@ function getMapTargets(audience) {
     ctx.fillStyle = halo;
     ctx.fillRect(p.x - 6*scale, p.y - 6*scale, 12*scale, 12*scale);
   }
+  function drawWaterfrontLandmark(kind,time) {
+    const seconds=reduced.matches?0:time/1000;
+    if(kind==='pier'){
+      const cuboid=(x,z,w,d,y,h)=>{
+        boxFaces({x,z,w,d,floors:h/FLOOR}).sort((a,b)=>a.depth-b.depth).forEach(f=>
+          polygon(f.p.map(([px,py,pz])=>[px,py+y,pz]),
+            night?(f.side==='top'?'#958a75':'#645f55'):(f.side==='top'?'#d2c5ad':'#a99d87'),'#99aaa9',.5));
+      };
+      for(const x of [66,86])for(const z of [344,365,390])cuboid(x,z,3,3,-8,10);
+      cuboid(76,361,28,58,-1,4);
+      cuboid(76,392,48,16,-1,4);
+      for(let z=335;z<390;z+=5)line([[63,3.1,z],[89,3.1,z]],night?'#b0a58c':'#b5a58d',.5);
+      for(let z=386;z<=398;z+=4)line([[53,3.1,z],[99,3.1,z]],night?'#b0a58c':'#b5a58d',.5);
+      for(const x of [55,97])cuboid(x,396,3,3,3,5);
+    } else {
+      const bob=Math.sin(seconds*1.4)*.65;
+      const cx=117,cz=389;
+      const point=(x,y,z)=>[cx+x,y+bob+Math.sin(seconds*.9)*x*.035,cz+z];
+      // Small moored skiff; a taut line attaches it to the pier, not open water.
+      line([[97,5,396],point(-8,-2,0)],night?'#879fa5':'#9aadb2',.7);
+      const hull=[[-7,-3,-17],[7,-3,-17],[8,-3,10],[0,-3,21],[-8,-3,10]];
+      polygon(hull.map(v=>point(...v)),night?'#899da4':'#ecf0ed','#a0b6bd',.9);
+      polygon([[-4,-2,-12],[4,-2,-12],[5,-2,8],[0,-2,15],[-5,-2,8]].map(v=>point(...v)),night?'#425963':'#b6cbd0',null);
+      for(const z of [-7,5])line([point(-5,-1,z),point(5,-1,z)],night?'#a9b3a6':'#ded9c6',2);
+      for(let i=0;i<3;i++){
+        const phase=reduced.matches?(i+1)/3:(seconds*.22+i/3)%1;
+        ctx.save();ctx.globalAlpha=(1-phase)*.45;
+        line(Array.from({length:25},(_,j)=>{const a=j*Math.PI/12;return [cx+(12+phase*12)*Math.cos(a),-5.6,cz+(24+phase*10)*Math.sin(a)];}),night?'#8db2bd':'#edf8f8',.8);
+        ctx.restore();
+      }
+    }
+  }
+  function drawStreetFurniture(k,bench=false) {
+    const faces=[];
+    const add=(p,color)=>faces.push({p,color,depth:p.reduce((v,p)=>v+project(p).depth,0)/p.length});
+    const solid=(x,z,w,d,base,h,color)=>{
+      const center=project([x,base+h/2,z]).depth;
+      boxFaces({x,z,w,d,floors:h/FLOOR}).forEach(f=>{
+        const p=f.p.map(([px,py,pz])=>[px,py+base,pz]);
+        const depth=p.reduce((v,p)=>v+project(p).depth,0)/4;
+        if(f.side!=='top' && depth<center-.001)return;
+        add(p,f.side==='top'?color:(night?'#586b73':'#c4d0d3'));
+      });
+    };
+    const {x,z,w,d}=k;
+    if(bench){
+      const wood=night?'#a89a7d':'#c3b497';
+      for(const dx of [-11,11])for(const dz of [-3,3])solid(x+dx,z+dz,1.6,1.6,0,5,'#9eafb0');
+      for(let i=0;i<4;i++)solid(x,z-3+i*2,29,1.5,5,1,wood);
+      for(const dx of [-11,11])solid(x+dx,z-4,1.4,1.4,5,8,'#9eafb0');
+      for(const y of [9,12])solid(x,z-4,29,1.2,y,1.8,wood);
+      for(const dx of [-14,14])solid(x+dx,z,1.4,8,8,1,'#a1b3b0');
+    } else {
+      // Separate solid shell, service hatch, and projecting canopy; no coplanar panels.
+      solid(x,z,w,d,0,20,night?'#a7b8b7':'#edf1ec');
+      const front=z+d/2;
+      const frontVisible=project([x,10,front]).depth>project([x,10,z]).depth;
+      if(frontVisible){
+        add([[x-w*.35,9,front+.12],[x+w*.35,9,front+.12],[x+w*.35,17,front+.12],[x-w*.35,17,front+.12]],night?'#cbb997':'#536b73');
+        // Window jambs and a clear sill, inset well below the canopy.
+        for(const dx of [-w*.37,w*.37])solid(x+dx,front+.4,1.2,1.2,8.5,9,'#e5ece8');
+        solid(x,front+.4,w*.76,1.2,17.5,1,'#e5ece8');
+      }
+      solid(x,front+2,w*.82,4,8,1.6,night?'#bbaa8c':'#d7c9af');
+      solid(x,z+2,w+4,d+10,21,1.8,night?'#a6b9af':'#d7e3db');
+      // Stripes sit strictly above the roof slab and never cross the service window.
+      for(let i=0;i<6;i++){
+        const l=x-(w+4)/2+(w+4)*i/6,r=l+(w+4)/6;
+        add([[l,22.82,z-d/2-3],[r,22.82,z-d/2-3],[r,22.82,front+7],[l,22.82,front+7]],
+          i%2?(night?'#becac2':'#f1f3ec'):(k.tone==='food'?'#c5a68b':'#a4bdb0'));
+      }
+    }
+    faces.sort((a,b)=>a.depth-b.depth).forEach(f=>polygon(f.p,f.color,night?'#899ca2':'#aebfc2',.4));
+  }
+  function drawKiosk(k){drawStreetFurniture(k);}
+  function drawAir(item,time) {
+    if(item.smoke){
+      const {x,y,z,r,alpha}=item.smoke,p=project([x,y,z]);
+      const scale=Math.min(width/410,height/440)*view.zoom;
+      ctx.save();ctx.globalAlpha=alpha;
+      const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*scale);
+      g.addColorStop(0,night?'#c4d2db':'#b5c3cb');g.addColorStop(1,'transparent');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,r*scale,0,Math.PI*2);ctx.fill();ctx.restore();
+      return;
+    }
+    const {x,y,z,heading,phase}=item.bird;
+    const flap=Math.sin(phase)*6;
+    const at=(a,b,c)=>[x+a*Math.cos(heading)-c*Math.sin(heading),y+b,z+a*Math.sin(heading)+c*Math.cos(heading)];
+    const faces=[
+      {p:[at(-2,0,-3),at(2,0,-3),at(0,3,1),at(0,0,6)],c:'#c3ced2'},
+      {p:[at(-1,1,0),at(-12,flap,-3),at(-6,flap*.5,5)],c:'#e3e9eb'},
+      {p:[at(1,1,0),at(12,flap,-3),at(6,flap*.5,5)],c:'#adbdc6'},
+      {p:[at(-1,1,5),at(1,1,5),at(0,2,9)],c:'#d8e0e3'}
+    ];
+    faces.sort((a,b)=>a.p.reduce((v,p)=>v+project(p).depth,0)-b.p.reduce((v,p)=>v+project(p).depth,0))
+      .forEach(f=>polygon(f.p,f.c,night?'#8ca0ae':'#9eafb7',.4));
+  }
   function draw(time=0) {
     ctx.clearRect(0,0,width,height);
+    // Continuous waterfront: street -> recreation apron -> promenade -> river.
+    // Open foreground preserves sightlines toward the original performance blocks.
+    const flat=(x0,z0,x1,z1,y,color,edge=null)=>
+      polygon([[x0,y,z0],[x1,y,z0],[x1,y,z1],[x0,y,z1]],color,edge);
+    flat(-359,-308,223,335,-5,night?'#283744':'#e5eaeb');
+    flat(-223,335,223,475,-6,night?'#203d4a':'#b9d5dc');
+    // A cross street connects the existing street grid to the recreation area.
+    flat(-223,204,223,226,-3,night?'#23303d':'#f8f9fa');
+    for(const x of [-76,76]) {
+      for(let dx=-8;dx<=8;dx+=4) flat(x+dx,207,x+dx+2,223,-2.8,night?'#6e818b':'#d2dadc');
+    }
+    flat(-223,311,223,335,-2,night?'#52616a':'#d8dedc');
+    line([[-220,-1,333],[220,-1,333]],night?'#87969d':'#b1bfc4',1.3);
+    // Western street continues into a pedestrian forecourt rather than a dead edge.
+    flat(-343,0,-224,160,-5,night?'#283744':'#e5eaeb');
+    flat(-247,0,-224,226,-3,night?'#23303d':'#f8f9fa');
+    flat(-343,160,-224,311,-3,night?'#3d5054':'#e2e8e4');
+    flat(-343,204,-224,226,-2.8,night?'#536368':'#eef0eb');
+    // Level paved forecourt: stalls face a clear waterfront pedestrian aisle.
+    flat(-337,231,-234,280,-2.5,night?'#45565e':'#e4e8e5');
+    flat(-337,280,-234,311,-2.4,night?'#55676b':'#f1f2ec');
+    // Coast and promenade continue past the recreation grounds.
+    flat(-359,311,-223,335,-2,night?'#52616a':'#d8dedc');
+    flat(-359,335,-223,475,-6,night?'#203d4a':'#b9d5dc');
+    // Continuous spatial waves: no modulo time resets or jumping segments.
+    const waterTime=reduced.matches?0:time/1000;
+    for(let row=0;row<7;row++){
+      const z0=348+row*18;
+      for(let col=0;col<12;col++){
+        const x0=-350+col*47+(row%2)*9;
+        if(x0+28>220)continue;
+        const alpha=.35+.2*Math.sin(waterTime*.6+col*.8+row);
+        ctx.save();ctx.globalAlpha=alpha;
+        line(Array.from({length:13},(_,j)=>{
+          const x=x0+j*2.3;
+          return [x,-5.7,z0+Math.sin(x*.035-waterTime*.8+row*.65)*2.2];
+        }),night?'#89b2c0':'#f1fcfc',.85);
+        ctx.restore();
+      }
+    }
+    line([[-357,5,334],[-223,5,334]],night?'#87969d':'#aab9bd',.8);
+    for(let x=-355;x<-223;x+=22)line([[x,-1,334],[x,5,334]],night?'#87969d':'#aab9bd',.7);
+    // A striped crossing connects the western forecourt to the original sidewalk.
+    for(let z=185;z<201;z+=4)flat(-246,z,-225,z+2,-2.6,night?'#87969d':'#cad6d7');
+    // One regulation-proportioned neighborhood court with a generous run-off area.
+    flat(-203,232,-55,309,-2,night?'#42565a':'#d0dad5');
+    flat(-193,237,-65,305,-1.8,night?'#496963':'#96b5aa');
+    const paint=night?'#cad9d3':'#f4f6ef';
+    line([[-193,-1.6,237],[-65,-1.6,237],[-65,-1.6,305],[-193,-1.6,305],[-193,-1.6,237]],paint,1);
+    line([[-129,-1.6,237],[-129,-1.6,305]],paint,1);
+    const ring=(x,z,r,y)=>Array.from({length:49},(_,i)=>[x+r*Math.cos(i*Math.PI/24),y,z+r*Math.sin(i*Math.PI/24)]);
+    line(ring(-129,271,9,-1.5),paint,.8);
+    for(const [x,sign] of [[-193,1],[-65,-1]]) {
+      line([[x,-1.5,258],[x+sign*24,-1.5,258],[x+sign*24,-1.5,284],[x,-1.5,284]],paint,.8);
+      line(ring(x+sign*24,271,7,-1.4),paint,.7);
+      line([[x+sign*4,-1,271],[x+sign*4,13,271]],night?'#9aabb0':'#8e9fa6',1.4);
+      polygon([[x+sign*4,10,265],[x+sign*4,16,265],[x+sign*4,16,277],[x+sign*4,10,277]],paint,'#8e9fa6',.5);
+      line(ring(x+sign*8,271,2.8,10),night?'#e7b18b':'#c28765',1);
+    }
+    // Broad pedestrian connection leads from the park to a low timber pier.
+    flat(-40,227,207,309,-2,night?'#394e4e':'#dae4dd');
+    flat(66,226,86,335,-1.5,night?'#617171':'#f0f1e9');
+    // Low railings leave the view open; a gap marks the pier entrance.
+    for(const [a,b] of [[-220,58],[94,220]]) {
+      line([[a,5,334],[b,5,334]],night?'#87969d':'#aab9bd',.8);
+      for(let x=a;x<b;x+=22) line([[x,-1,334],[x,5,334]],night?'#87969d':'#aab9bd',.7);
+    }
+    // A paved coffee terrace stays east of the unobstructed pier approach.
+    flat(117,235,190,286,-1.5,night?'#4b5d63':'#e4e9e5');
+    flat(98,287,202,310,-1.4,night?'#58696c':'#eef1eb');
     polygon([[-207,-4,-203],[207,-4,-203],[207,-4,203],[-207,-4,203]],'#e4e8ea','#d6dcdf');
     // Quiet streets and raised building plots.
     for(const z of [-50,54]) polygon([[-207,-3,z-12],[207,-3,z-12],[207,-3,z+12],[-207,-3,z+12]],'#f8f9fa',null);
     for(const x of [-76,76]) polygon([[x-12,-3,-203],[x+12,-3,-203],[x+12,-3,203],[x-12,-3,203]],'#f8f9fa',null);
+    // Connected road corridors; reserved strips never intersect building plots.
+    for(const [x0,z0,x1,z1] of [
+      [-359,-308,223,-300],[-247,-300,-207,226],
+      [-359,-227,223,-203],[-88,-300,-64,226],[64,-300,88,226],
+      [-359,-62,-207,-38],[-359,-12,-247,12],
+      [207,-300,223,226],[-359,149,-247,171],
+      [-359,-300,-335,226],[-359,204,223,226]
+    ])flat(x0,z0,x1,z1,-2.7,night?'#23303d':'#f8f9fa');
     for(const block of BLOCKS) {
       const {x0,x1,z0,z1}=block;
       polygon([[x0+1,-1,z0+1],[x1-1,-1,z0+1],[x1-1,-1,z1-1],[x0+1,-1,z1-1]],
@@ -504,8 +754,28 @@ function getMapTargets(audience) {
       line(path.map(([x,z]) => [x,1,z]), night ? '#8dd6ed' : '#307e9e', 2);
       ctx.restore();
     }
+    const airTime=reduced.matches?0:time/1000;
+    for(let i=0;i<7;i++){
+      const age=(airTime*.18+i/7)%1;
+      const smoke={x:123+age*24,y:64+age*53,z:-273+age*9,r:3+age*9,alpha:(1-age)*.22};
+      scene.push({smoke,depth:project([smoke.x,smoke.y,smoke.z]).depth});
+    }
+    for(let i=0;i<3;i++){
+      const angle=airTime*.13+i*.15;
+      const bird={x:-55+210*Math.cos(angle),z:90+155*Math.sin(angle),y:175+i*7+Math.sin(angle*2)*8,heading:angle,phase:airTime*5+i};
+      scene.push({bird,depth:project([bird.x,bird.y,bird.z]).depth});
+    }
+    scene.push({landmark:'pier',depth:project([76,0,366]).depth});
+    for(const [x,z] of [[-309,294],[-285,294],[133,299],[177,299]])
+      scene.push({bench:{x,z},depth:project([x,0,z]).depth});
+    KIOSKS.forEach(kiosk=>scene.push({kiosk,depth:project([kiosk.x,0,kiosk.z]).depth}));
+    scene.push({landmark:'boat',depth:project([117,0,389]).depth});
     scene.sort((a,b)=>a.depth-b.depth).forEach(item=>{
-      if(item.lamp)drawStreetLamp(item.lamp);
+      if(item.bench)drawStreetFurniture(item.bench,true);
+      else if(item.kiosk)drawKiosk(item.kiosk);
+      else if(item.bird||item.smoke)drawAir(item,time);
+      else if(item.landmark)drawWaterfrontLandmark(item.landmark,time);
+      else if(item.lamp)drawStreetLamp(item.lamp);
       else if(item.tree)drawTree(item.tree);
       else boxFaces(item.building).sort((a,b)=>a.depth-b.depth).forEach(f=>{
         drawFacade(f);faceDetails(f);
@@ -569,7 +839,7 @@ function getMapTargets(audience) {
   ['pointerup','pointercancel','lostpointercapture'].forEach(name=>canvas.addEventListener(name,release));
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   canvas.addEventListener('wheel',e=>{e.preventDefault();view.zoom=clamp(view.zoom*Math.exp(-e.deltaY*.001),.65,2.4);refresh();},{passive:false});
-  const reset=()=>{view={...initial};refresh();};
+  const reset=()=>{view={...initial};const p=project(TARGET);view.panX=width*.5-p.x;view.panY=height*.48-p.y;refresh();};
   canvas.addEventListener('dblclick',reset);
   canvas.addEventListener('keydown',e=>{
     if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','0','Home'].includes(e.key))return;e.preventDefault();

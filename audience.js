@@ -2002,7 +2002,7 @@ radiusSlider.addEventListener('change', () => {
     const status = latest ? `${latest.status === 'pending' ? 'Waiting for' : latest.status === 'accepted' ? 'Accepted by' : latest.status === 'declined' ? 'Declined by' : 'Request expired for'} ${g.name} · +${latest.minutes} min${latest.song ? '\nSong: ' + latest.song : ''}` : canRequestEncore(g) ? 'Ask for up to 30 more minutes and suggest a song.' : 'Connect nearby to request an encore.';
     if (encoreStatus.textContent !== status) encoreStatus.textContent = status;
     if (encoreDialog.open && !canRequestEncore(gigs.find(g => g.id === encoreTarget?.id))) encoreDialog.close();
-    inbox.hidden = userRole !== 'performer' || !['home', 'live'].includes(screen);
+    inbox.hidden = userRole !== 'performer' || screen !== 'live';
     if (screen === 'live' && inbox.parentElement !== $('#live-feedback')) $('#live-feedback').prepend(inbox);
     if (screen === 'home' && inbox.parentElement !== $('#home')) $('#home').append(inbox);
     const owner = 'alex';
