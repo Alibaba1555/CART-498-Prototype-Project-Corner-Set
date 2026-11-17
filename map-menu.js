@@ -49,9 +49,12 @@
   }));
   function sync(){
     const performer=typeof userRole==='undefined'||userRole==='performer';
-    const visible=!home.hidden&&performer;
+    const visible=!home.hidden;
+    app.classList.toggle("audience-map-active",visible&&!performer);
     app.classList.toggle('map-home-active',visible);
     nav.hidden=!visible;
+    nav.querySelector('[data-action="live"]').hidden=!performer;
+    nav.querySelector('[data-action="role"] span').textContent=performer?'Switch to audience':'Switch to performer';
     if(!visible)close();
     const night=document.documentElement.dataset.theme==='night';
     const button=nav.querySelector('[data-action="night"]');

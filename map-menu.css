@@ -20,10 +20,10 @@
 .corner-menu svg { width:22px;height:22px;flex-shrink:0;transition:transform .3s; }
 .is-open .corner-trigger svg { transform:rotate(90deg); }
 .corner-actions { position:absolute;right:22px;bottom:96px;display:flex;flex-direction:column;gap:10px;align-items:flex-end; }
-.corner-action { position:relative;display:flex;align-items:center;gap:15px;width:226px;min-height:54px;padding:12px 19px;border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--surface);color:var(--text);font-size:13px;text-align:left;box-shadow:0 8px 25px #10223115;opacity:0;visibility:hidden;transform:translate(28px,16px) skewX(-6deg);transition:opacity .18s,transform .32s cubic-bezier(.16,1,.3,1),visibility .32s;pointer-events:none; }
+.corner-action { position:relative;display:flex;align-items:center;gap:15px;width:226px;min-height:54px;padding:12px 19px;border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--surface);color:var(--text);font-size:13px;text-align:left;box-shadow:0 8px 25px #10223115;opacity:0;visibility:hidden;transform:translate3d(16px,10px,0) scale(.98);transform-origin:right center;transition:opacity .18s ease,transform .3s cubic-bezier(.22,1,.36,1),visibility 0s .3s,translate .2s ease;pointer-events:none; }
 .corner-action:first-child { background:var(--accent);color:white;border-color:var(--accent); }
-.is-open .corner-action { opacity:1;visibility:visible;transform:none;pointer-events:auto;transition-delay:calc(var(--order)*45ms); }
-.corner-action:hover { translate:-5px 0; }
+.is-open .corner-action { opacity:1;visibility:visible;transform:none;pointer-events:auto;transition-delay:calc((3 - var(--order))*25ms); }
+.corner-action:hover { translate:-3px 0; }
 .corner-action:focus-visible { outline-offset:3px; }
 .menu-scrim { position:absolute;inset:0;width:100%;height:100%;border:0;background:#101d302e;opacity:0;pointer-events:none;transition:opacity .3s; }
 .is-open .menu-scrim { opacity:1;pointer-events:auto; }
@@ -34,3 +34,71 @@
 @media(prefers-reduced-motion:reduce){
  .corner-menu *, .corner-menu *::before { transition:none!important; }
 }
+
+/* Audience browsing remains on one map; details only open on request. */
+.audience-map-active #audience-home { display:none!important; }
+.audience-map-active .audience-range { position:absolute;top:112px;left:20px;right:20px;z-index:13;padding:10px 12px;background:var(--surface);border:1px solid var(--line); }
+.audience-map-active .map-heading { top:174px; }
+.audience-map-active .map-dimension { top:174px; }
+.audience-map-active .map-legend { bottom:96px; }
+.audience-map-active .map-tools { bottom:156px; }
+.audience-map-active .audience-range-summary { display:none; }
+.map-arrival { position:absolute;z-index:24;left:18px;right:18px;bottom:92px;min-height:46px;padding:12px 16px;background:var(--surface);color:var(--accent);border:1px solid var(--line);border-left:3px solid var(--accent);box-shadow:0 6px 24px #172a3318;font-size:12px;text-align:left; }
+.audience-detail-shade { position:absolute;inset:0;width:100%;height:100%;z-index:29;border:0;background:#14212c40; }
+.audience-detail-sheet { position:absolute;z-index:30;bottom:0;left:0;right:0;max-height:76%;overflow:auto;overscroll-behavior:contain;padding:24px 20px 20px;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -12px 40px #10202d24;animation:artist-sheet-in .28s cubic-bezier(.22,1,.36,1); }
+.sheet-close { position:absolute;right:10px;top:8px;width:40px;height:40px;border:0;background:var(--soft);color:var(--text);font-size:24px;z-index:2; }
+.audience-detail-sheet #performance-card { display:flex;flex-direction:column;gap:12px;border:0;padding:0;margin:0; }
+.audience-detail-sheet .section-top { order:0;margin:0;padding-right:40px; }
+.audience-detail-sheet .profile-row { order:1;margin:0;gap:12px; }
+.audience-detail-sheet #artist-avatar { width:44px;height:44px;font-size:20px; }
+.audience-detail-sheet h3 { font-size:24px;margin:0; }
+.audience-detail-sheet #artist-style { margin:3px 0 0; }
+.audience-detail-sheet #artist-location { order:2;margin:0;font-size:12px; }
+.audience-detail-sheet .audience-time { order:3;padding:12px 0;margin:0; }
+.audience-detail-sheet .audience-time strong { font-size:24px!important; }
+.audience-detail-sheet #set-seconds,.audience-detail-sheet #set-seconds + small { display:none; }
+.audience-detail-sheet .sheet-walk { order:4; }
+.audience-detail-sheet #tip-open { order:5; }
+.audience-detail-sheet #encore-open { order:6; }
+.audience-detail-sheet .mt-save { order:7; }
+.audience-detail-sheet .artist-details { order:10;margin:0;border-top:1px solid var(--line);padding-top:12px; }
+.audience-detail-sheet .footnote,.audience-detail-sheet .mt-help,.audience-detail-sheet .encore-status { order:8;margin:0;font-size:11px; }
+.audience-detail-sheet button.primary,.audience-detail-sheet #encore-open { margin:0;min-height:44px;padding:12px; }
+.audience-map-active .audience-empty { position:absolute;top:225px;left:20px;right:20px;z-index:15;background:var(--surface);padding:14px; }
+@keyframes artist-sheet-in { from {opacity:0;transform:translateY(24px)} to {opacity:1;transform:none} }
+@media(prefers-reduced-motion:reduce){.audience-detail-sheet{animation:none}}
+
+.app:not(.audience-map-active) > .audience-empty { display:none!important; }
+.audience-detail-sheet .artist-details .musician-bio { font-size:12px;line-height:1.55; }
+.audience-detail-sheet .mt-save { margin:0;min-height:44px; }
+.audience-detail-sheet .profile-row .avatar { flex-shrink:0; }
+
+/* Integrated logo and a compact floating artist card. */
+:root:not([data-theme="night"]) .app-header .brand-logo { mix-blend-mode:multiply; }
+.map-home-active .app-header { background:transparent; }
+.audience-detail-shade { background:#15232e24; }
+.audience-detail-sheet { left:16px;right:16px;bottom:20px;max-height:calc(100% - 150px);padding:18px 16px 16px;border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 44px #15233126; }
+.audience-detail-sheet #performance-card { gap:9px; }
+.audience-detail-sheet #performance-card > * { flex-shrink:0; }
+.audience-detail-sheet #performance-card .profile-row { margin:0;padding:0;gap:12px; }
+.audience-detail-sheet #performance-card #artist-avatar { width:46px;height:46px;flex:0 0 46px;border-radius:50%!important;aspect-ratio:1;display:grid;place-items:center;font-size:20px; }
+.audience-detail-sheet #performance-card #artist-name { font-size:23px;line-height:1.2; }
+.audience-detail-sheet #performance-card #artist-location { margin:0;font-size:11px; }
+.audience-detail-sheet #performance-card .audience-time { margin:0;padding:10px 0;gap:16px; }
+.audience-detail-sheet #performance-card .audience-time strong { font-size:22px!important; }
+.audience-detail-sheet #performance-card .metric-label { font-size:10px;margin-bottom:3px; }
+.audience-detail-sheet #performance-card .footnote,
+.audience-detail-sheet #performance-card .mt-help { display:none; }
+.audience-detail-sheet #performance-card .primary,
+.audience-detail-sheet #performance-card .secondary,
+.audience-detail-sheet #performance-card .mt-save { min-height:42px;padding:10px 14px;margin:0;font-size:13px; }
+.audience-detail-sheet #performance-card .artist-details { padding-top:9px;margin-top:2px;font-size:12px; }
+.audience-detail-sheet #performance-card .tag { padding:6px 9px;font-size:9px; }
+.sheet-close { top:9px;right:9px;width:32px;height:32px;font-size:21px;border-radius:50%; }
+.map-arrival { display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 26px #172a331a;min-height:62px; }
+.arrival-symbol { display:grid;place-items:center;flex:0 0 34px;height:34px;border-radius:50%;background:var(--soft);color:var(--accent);font-size:24px; }
+.arrival-copy { display:flex;flex-direction:column;gap:4px; }
+.arrival-kicker { font-size:8px;letter-spacing:1.6px;color:var(--muted); }
+.arrival-name { font-size:13px;font-weight:550;color:var(--text); }
+.arrival-arrow { margin-left:auto;font-size:23px;color:var(--accent); }
+@media(max-width:360px){.audience-detail-sheet{left:10px;right:10px;padding:16px 12px;}}

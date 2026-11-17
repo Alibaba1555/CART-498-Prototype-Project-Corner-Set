@@ -163,6 +163,61 @@
 
   const host = $('.map-3d');
   const card = $('#performance-card');
+  // Map-first audience detail sheet reuses the original live card and handlers.
+  const detailSheet=document.createElement('section');
+  detailSheet.className='audience-detail-sheet';detailSheet.hidden=true;
+  detailSheet.setAttribute('role','dialog');detailSheet.setAttribute('aria-labelledby','artist-name');
+  detailSheet.innerHTML='<button class="sheet-close" type="button" aria-label="Close artist details">×</button>';
+  const detailShade=document.createElement('button');
+  detailShade.className='audience-detail-shade';detailShade.hidden=true;
+  detailShade.setAttribute('aria-label','Close artist details');detailShade.tabIndex=-1;
+  $('.app').append(detailShade,detailSheet);
+  detailSheet.append(card);
+  const walkButton=document.createElement('button');
+  walkButton.className='sheet-walk primary';walkButton.type='button';walkButton.textContent='Walk to this set';
+  card.prepend(walkButton);
+  const arrival=document.createElement('button');
+  arrival.type='button';arrival.className='map-arrival';arrival.hidden=true;arrival.setAttribute('aria-live','polite');
+  arrival.innerHTML='<span class="arrival-symbol" aria-hidden="true">◎</span><span class="arrival-copy"><span class="arrival-kicker">LIVE NEAR YOU</span><strong class="arrival-name"></strong></span><span class="arrival-arrow" aria-hidden="true">↗</span>';
+  $('.app').append(arrival);
+  let detailTrigger=null;
+  function closeArtistSheet(restore=false){
+    detailSheet.hidden=true;detailShade.hidden=true;
+    if(restore && detailTrigger?.isConnected)detailTrigger.focus({preventScroll:true});
+  }
+  function openArtistSheet(id,trigger){
+    select(id);
+    if(selected!==id || !available(gigs.find(g=>g.id===id)))return;
+    detailTrigger=trigger||document.activeElement;
+    detailSheet.hidden=false;detailShade.hidden=false;
+    detailSheet.scrollTop=0;
+    detailSheet.querySelector('.sheet-close').focus({preventScroll:true});
+  }
+  detailSheet.querySelector('.sheet-close').addEventListener('click',()=>closeArtistSheet(true));
+  detailShade.addEventListener('click',()=>closeArtistSheet(true));
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!detailSheet.hidden&&!document.querySelector('dialog[open]')){
+      closeArtistSheet(true);e.preventDefault();
+    }
+  });
+  walkButton.addEventListener('click',()=>{
+    $('#walk-target').value=selected;
+    if(walking)stopWalk();
+    $('#walk-start').click();
+    closeArtistSheet();
+  });
+  arrival.addEventListener('click',()=>{
+    if(connected)openArtistSheet(connected,arrival);
+  });
+  function syncMapSheet(){
+    const onMap=userRole==='audience' && !$('#home').hidden;
+    const gig=gigs.find(g=>g.id===connected);
+    arrival.hidden=!onMap||!gig||!available(gig);
+    if(!arrival.hidden){const message='You’re near '+gig.name;const label=arrival.querySelector('.arrival-name');if(label.textContent!==message)label.textContent=message;arrival.setAttribute('aria-label',message+'. View live set');}
+    walkButton.hidden=connected===selected;
+    if(!onMap||!available(gigs.find(g=>g.id===selected)))closeArtistSheet();
+  }
+  new MutationObserver(syncMapSheet).observe($('#home'),{attributes:true,attributeFilter:['hidden']});
   const pins = new Map();
   const rows = new Map();
   const myPin = document.createElement('div');
@@ -258,11 +313,10 @@
 
   preview.querySelector('.preview-close').addEventListener('click', () => closePreview(true));
   preview.querySelector('.preview-details').addEventListener('click', () => {
-    select(previewGig.id);
+    const id=previewGig.id;
+    const trigger=pins.get(id);
     closePreview();
-    card.tabIndex = -1;
-    card.focus({preventScroll:true});
-    card.scrollIntoView({block:'start'});
+    openArtistSheet(id,trigger);
   });
   document.addEventListener('keydown', event => {
     if (previewGig && event.key === 'Escape') closePreview(true);
@@ -487,7 +541,7 @@
     <button type="button">Show all</button>
   `;
 
-  card.after(emptyPanel);
+  $('.app').append(emptyPanel);
 
   function setRadius(value) {
   const numeric = Number(value);
@@ -647,6 +701,7 @@ radiusSlider.addEventListener('change', () => {
     }
 
     if (!isAudience) {
+      syncMapSheet();
       myPin.hidden = true;
       pins.forEach(pin => {
         pin.hidden = true;
@@ -674,7 +729,7 @@ radiusSlider.addEventListener('change', () => {
       }
     }
 
-    if (connected && connected !== prior) {
+    if (connected && connected !== prior && detailSheet.hidden) {
       selected = connected;
     }
 
@@ -684,7 +739,7 @@ radiusSlider.addEventListener('change', () => {
 
       if (connected) {
         const name = gigs.find(g => g.id === connected).name;
-        toast(`Connected to ${name}\u2019s set.`);
+        // The persistent, tappable arrival chip announces the nearby performer.
       } else if (prior) {
         toast('You left the performance area.');
       }
@@ -796,6 +851,7 @@ radiusSlider.addEventListener('change', () => {
     });
 
     myPin.hidden = false;
+    syncMapSheet();
     refreshMap();
   }
 
@@ -819,7 +875,7 @@ radiusSlider.addEventListener('change', () => {
     const box = app.getBoundingClientRect();
     const avatarBox = avatar.getBoundingClientRect();
 
-    const DURATION = 2500;
+    const DURATION = 1400;
     const HALF = DURATION / 2;
 
     const canvas = document.createElement('canvas');

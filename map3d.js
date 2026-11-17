@@ -133,7 +133,7 @@
   ];
   streetLamps.push({x:-239,z:155},{x:-316,z:322},{x:-248,z:322});
   const TARGET = [0, FLOOR * 3.5, 34]; // middle of floor 4, front facade
-  const initial = {yaw:-0.58,pitch:0.52,zoom:1,panX:0,panY:0};
+  const initial = {yaw:-0.58,pitch:0.46,zoom:1.12,panX:0,panY:0};
   let view = {...initial}, width=0, height=0, visible=true, frame=0;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const pointers = new Map();
@@ -486,7 +486,7 @@ function getMapTargets(audience) {
           polygon(f.p.map(([px,py,pz])=>[px,py+y,pz]),
             night?(f.side==='top'?'#958a75':'#645f55'):(f.side==='top'?'#d2c5ad':'#a99d87'),'#99aaa9',.5));
       };
-      for(const x of [66,86])for(const z of [344,365,390])cuboid(x,z,3,3,-8,10);
+      for(const x of [66,86])for(const z of [344,365,390])cuboid(x,z,3,3,-12,14);
       cuboid(76,361,28,58,-1,4);
       cuboid(76,392,48,16,-1,4);
       for(let z=335;z<390;z+=5)line([[63,3.1,z],[89,3.1,z]],night?'#b0a58c':'#b5a58d',.5);
@@ -495,7 +495,7 @@ function getMapTargets(audience) {
     } else {
       const bob=Math.sin(seconds*1.4)*.65;
       const cx=117,cz=389;
-      const point=(x,y,z)=>[cx+x,y+bob+Math.sin(seconds*.9)*x*.035,cz+z];
+      const point=(x,y,z)=>[cx+x,y-4+bob+Math.sin(seconds*.9)*x*.035,cz+z];
       // Small moored skiff; a taut line attaches it to the pier, not open water.
       line([[97,5,396],point(-8,-2,0)],night?'#879fa5':'#9aadb2',.7);
       const hull=[[-7,-3,-17],[7,-3,-17],[8,-3,10],[0,-3,21],[-8,-3,10]];
@@ -505,10 +505,24 @@ function getMapTargets(audience) {
       for(let i=0;i<3;i++){
         const phase=reduced.matches?(i+1)/3:(seconds*.22+i/3)%1;
         ctx.save();ctx.globalAlpha=(1-phase)*.45;
-        line(Array.from({length:25},(_,j)=>{const a=j*Math.PI/12;return [cx+(12+phase*12)*Math.cos(a),-5.6,cz+(24+phase*10)*Math.sin(a)];}),night?'#8db2bd':'#edf8f8',.8);
+        line(Array.from({length:25},(_,j)=>{const a=j*Math.PI/12;return [cx+(12+phase*12)*Math.cos(a),-9.5,cz+(24+phase*10)*Math.sin(a)];}),night?'#8db2bd':'#edf8f8',.8);
         ctx.restore();
       }
     }
+  }
+  function drawParkBench(mx,bz,facing=1) {
+    const wood=night?'#81928c':'#acbcb3',edge=night?'#536b64':'#829b90';
+    for(let slat=0;slat<4;slat++){
+      const z=bz-3.5+slat*1.9;
+      polygon([[mx-14,4,z],[mx+14,4,z],[mx+14,4,z+1.4],[mx-14,4,z+1.4]],wood,edge,.35);
+    }
+    const back=bz-facing*4;
+    for(const x of [mx-10,mx+10]){
+      line([[x,0,bz-2.5],[x,4,bz-2.5],[x,4,bz+2.5],[x,0,bz+2.5]],night?'#9baba8':'#718782',1.2);
+      line([[x,3,back],[x,10,back]],edge,1);
+    }
+    for(const y of [6.5,9])polygon([[mx-14,y,back],[mx+14,y,back],[mx+14,y+1.6,back],[mx-14,y+1.6,back]],wood,edge,.4);
+    for(const x of [mx-13,mx+13])line([[x,4,bz+2*facing],[x,7,bz+2*facing],[x,7,back]],edge,1);
   }
   function drawStreetFurniture(k,bench=false) {
     const faces=[];
@@ -565,7 +579,8 @@ function getMapTargets(audience) {
     }
     const {x,y,z,heading,phase}=item.bird;
     const flap=Math.sin(phase)*6;
-    const at=(a,b,c)=>[x+a*Math.cos(heading)-c*Math.sin(heading),y+b,z+a*Math.sin(heading)+c*Math.cos(heading)];
+    const size=.32;
+    const at=(a,b,c)=>[x+size*(a*Math.cos(heading)-c*Math.sin(heading)),y+b*size,z+size*(a*Math.sin(heading)+c*Math.cos(heading))];
     const faces=[
       {p:[at(-2,0,-3),at(2,0,-3),at(0,3,1),at(0,0,6)],c:'#c3ced2'},
       {p:[at(-1,1,0),at(-12,flap,-3),at(-6,flap*.5,5)],c:'#e3e9eb'},
@@ -581,15 +596,15 @@ function getMapTargets(audience) {
     // Open foreground preserves sightlines toward the original performance blocks.
     const flat=(x0,z0,x1,z1,y,color,edge=null)=>
       polygon([[x0,y,z0],[x1,y,z0],[x1,y,z1],[x0,y,z1]],color,edge);
-    flat(-359,-308,223,335,-5,night?'#283744':'#e5eaeb');
-    flat(-223,335,223,475,-6,night?'#203d4a':'#b9d5dc');
+    flat(-359,-308,223,345,-5,night?'#283744':'#e5eaeb');
+    flat(-359,345,223,450,-10,night?'#203d4a':'#b9d5dc');
     // A cross street connects the existing street grid to the recreation area.
     flat(-223,204,223,226,-3,night?'#23303d':'#f8f9fa');
     for(const x of [-76,76]) {
       for(let dx=-8;dx<=8;dx+=4) flat(x+dx,207,x+dx+2,223,-2.8,night?'#6e818b':'#d2dadc');
     }
-    flat(-223,311,223,335,-2,night?'#52616a':'#d8dedc');
-    line([[-220,-1,333],[220,-1,333]],night?'#87969d':'#b1bfc4',1.3);
+    flat(-223,311,223,345,-2,night?'#52616a':'#d8dedc');
+    line([[-220,-1,344],[220,-1,344]],night?'#87969d':'#b1bfc4',1.3);
     // Western street continues into a pedestrian forecourt rather than a dead edge.
     flat(-343,0,-224,160,-5,night?'#283744':'#e5eaeb');
     flat(-247,0,-224,226,-3,night?'#23303d':'#f8f9fa');
@@ -599,26 +614,46 @@ function getMapTargets(audience) {
     flat(-337,231,-234,280,-2.5,night?'#45565e':'#e4e8e5');
     flat(-337,280,-234,311,-2.4,night?'#55676b':'#f1f2ec');
     // Coast and promenade continue past the recreation grounds.
-    flat(-359,311,-223,335,-2,night?'#52616a':'#d8dedc');
-    flat(-359,335,-223,475,-6,night?'#203d4a':'#b9d5dc');
-    // Continuous spatial waves: no modulo time resets or jumping segments.
+    flat(-359,311,-223,345,-2,night?'#52616a':'#d8dedc');
+
+    // Coherent parallel currents: long, shallow curves drifting in one direction.
     const waterTime=reduced.matches?0:time/1000;
-    for(let row=0;row<7;row++){
-      const z0=348+row*18;
-      for(let col=0;col<12;col++){
-        const x0=-350+col*47+(row%2)*9;
-        if(x0+28>220)continue;
-        const alpha=.35+.2*Math.sin(waterTime*.6+col*.8+row);
-        ctx.save();ctx.globalAlpha=alpha;
-        line(Array.from({length:13},(_,j)=>{
-          const x=x0+j*2.3;
-          return [x,-5.7,z0+Math.sin(x*.035-waterTime*.8+row*.65)*2.2];
-        }),night?'#89b2c0':'#f1fcfc',.85);
+    for(let row=0;row<6;row++){
+      const z=355+row*16;
+      for(let segment=0;segment<5;segment++){
+        const phase=(waterTime*.028+segment*.2+row*.073)%1;
+        const x=-450+phase*800;
+        const length=48+12*Math.sin(row*1.7+segment);
+        ctx.save();ctx.globalAlpha=Math.sin(Math.PI*phase)**2*.23;
+        const points=Array.from({length:25},(_,i)=>{
+          const px=x+i/24*length;
+          return [px,-9.7,z+Math.sin(px*.016-waterTime*.35+row*.4)*.8];
+        }).filter(p=>p[0]>-355&&p[0]<219);
+        if(points.length>1)line(points,night?'#92b8c1':'#edf7f6',.65);
         ctx.restore();
       }
     }
-    line([[-357,5,334],[-223,5,334]],night?'#87969d':'#aab9bd',.8);
-    for(let x=-355;x<-223;x+=22)line([[x,-1,334],[x,5,334]],night?'#87969d':'#aab9bd',.7);
+    // Dark near-shore depth and the vertical stone retaining wall.
+    flat(-359,345,223,351,-9.8,night?'#1c3540':'#a9c8cd');
+    polygon([[-359,-2,345],[223,-2,345],[223,-10,345],[-359,-10,345]],
+      night?'#52636b':'#b3c0c2',night?'#74848a':'#a4b4b8',.6);
+    flat(-359,341,223,345,-1.8,night?'#8b989b':'#dce3df');
+    for(let x=-350;x<223;x+=24)
+      line([[x,-2.1,345.1],[x,-9.5,345.1]],night?'#6b7c82':'#97aaae',.5);
+    // Grounded, quiet shadows beneath the pier and boat.
+    polygon([[60,-9.6,345],[91,-9.6,345],[104,-9.6,401],[52,-9.6,401]],
+      night?'#142b3440':'#789ba733',null);
+    polygon(Array.from({length:32},(_,i)=>{const a=i*Math.PI/16;return [117+10*Math.cos(a),-9.6,389+23*Math.sin(a)];}),
+      night?'#132a3440':'#648e9a30',null);
+    // Small current rings at the pilings, sharing the existing animation clock.
+    for(const x of [66,86])for(const z of [365,390]){
+      const phase=reduced.matches?.35:(waterTime*.3+x*.02+z*.01)%1;
+      ctx.save();ctx.globalAlpha=(1-phase)*.24;
+      line(Array.from({length:25},(_,i)=>{const a=i*Math.PI/12;return [x+(2+phase*4)*Math.cos(a),-9.5,z+(2+phase*4)*Math.sin(a)];}),night?'#92bcc5':'#edf8f6',.6);
+      ctx.restore();
+    }
+    line([[-357,5,344],[-223,5,344]],night?'#87969d':'#aab9bd',.8);
+    for(let x=-355;x<-223;x+=22)line([[x,-1,344],[x,5,344]],night?'#87969d':'#aab9bd',.7);
     // A striped crossing connects the western forecourt to the original sidewalk.
     for(let z=185;z<201;z+=4)flat(-246,z,-225,z+2,-2.6,night?'#87969d':'#cad6d7');
     // One regulation-proportioned neighborhood court with a generous run-off area.
@@ -641,8 +676,8 @@ function getMapTargets(audience) {
     flat(66,226,86,335,-1.5,night?'#617171':'#f0f1e9');
     // Low railings leave the view open; a gap marks the pier entrance.
     for(const [a,b] of [[-220,58],[94,220]]) {
-      line([[a,5,334],[b,5,334]],night?'#87969d':'#aab9bd',.8);
-      for(let x=a;x<b;x+=22) line([[x,-1,334],[x,5,334]],night?'#87969d':'#aab9bd',.7);
+      line([[a,5,344],[b,5,344]],night?'#87969d':'#aab9bd',.8);
+      for(let x=a;x<b;x+=22) line([[x,-1,344],[x,5,344]],night?'#87969d':'#aab9bd',.7);
     }
     // A paved coffee terrace stays east of the unobstructed pier approach.
     flat(117,235,190,286,-1.5,night?'#4b5d63':'#e4e9e5');
@@ -700,25 +735,7 @@ function getMapTargets(audience) {
               ctx.fillStyle=night?'#d6faff':'#ffffff';ctx.fill();
             }
           }
-          for(const bz of [z0+17,z1-17]) {
-            const facing=bz<mz?1:-1;
-            const wood=night?'#81928c':'#acbcb3',edge=night?'#536b64':'#829b90';
-            // Four separate seat slats with a visible front edge.
-            for(let slat=0;slat<4;slat++) {
-              const z=bz-3.5+slat*1.9;
-              polygon([[mx-14,4,z],[mx+14,4,z],[mx+14,4,z+1.4],[mx-14,4,z+1.4]],wood,edge,.35);
-            }
-            const back=bz-facing*4;
-            for(const x of [mx-10,mx+10]) {
-              line([[x,0,bz-2.5],[x,4,bz-2.5],[x,4,bz+2.5],[x,0,bz+2.5]],
-                night?'#9baba8':'#718782',1.2);
-              line([[x,3,back],[x,10,back]],edge,1);
-            }
-            for(const y of [6.5,9])polygon([[mx-14,y,back],[mx+14,y,back],
-              [mx+14,y+1.6,back],[mx-14,y+1.6,back]],wood,edge,.4);
-            for(const x of [mx-13,mx+13])line([[x,4,bz+2*facing],[x,7,bz+2*facing],
-              [x,7,back]],edge,1);
-          }
+          for(const bz of [z0+17,z1-17]) drawParkBench(mx,bz,bz<mz?1:-1);
         }
         // Flat planting beds keep the park visually open.
         for(const [tx,tz] of [[x0+22,z0+20],[x1-22,z0+20],[x0+22,z1-20],[x1-22,z1-20]]) {
@@ -760,18 +777,33 @@ function getMapTargets(audience) {
       const smoke={x:123+age*24,y:64+age*53,z:-273+age*9,r:3+age*9,alpha:(1-age)*.22};
       scene.push({smoke,depth:project([smoke.x,smoke.y,smoke.z]).depth});
     }
-    for(let i=0;i<3;i++){
-      const angle=airTime*.13+i*.15;
-      const bird={x:-55+210*Math.cos(angle),z:90+155*Math.sin(angle),y:175+i*7+Math.sin(angle*2)*8,heading:angle,phase:airTime*5+i};
-      scene.push({bird,depth:project([bird.x,bird.y,bird.z]).depth});
+    // One flock crosses in eight seconds, followed by a quiet interval.
+    // Invisible outside the pass; reduced-motion users see no airborne movement.
+    const flightClock=(airTime+24)%34;
+    if(!reduced.matches && flightClock<8){
+      const pass=Math.floor((airTime+24)/34),direction=pass%2?1:-1;
+      const progress=flightClock/8;
+      const random=i=>{const n=Math.sin(i*127.1+pass*311.7+19.3)*43758.5453;return n-Math.floor(n);};
+      for(let i=0;i<16;i++){
+        const spreadX=(random(i*4)-.5)*150;
+        const spreadZ=(random(i*4+1)-.5)*160;
+        const bird={
+          x:direction*(-720+1440*progress)+spreadX,
+          z:70+spreadZ+progress*100,
+          y:158+random(i*4+2)*32+Math.sin(airTime*1.4+i)*2,
+          heading:Math.atan2(-direction*1440,100),
+          phase:airTime*(7+random(i*4+3)*2)+i*1.7
+        };
+        scene.push({bird,depth:project([bird.x,bird.y,bird.z]).depth});
+      }
     }
     scene.push({landmark:'pier',depth:project([76,0,366]).depth});
-    for(const [x,z] of [[-309,294],[-285,294],[133,299],[177,299]])
+    for(const [x,z] of [[-316,294],[-276,294],[133,299],[177,299]])
       scene.push({bench:{x,z},depth:project([x,0,z]).depth});
     KIOSKS.forEach(kiosk=>scene.push({kiosk,depth:project([kiosk.x,0,kiosk.z]).depth}));
     scene.push({landmark:'boat',depth:project([117,0,389]).depth});
     scene.sort((a,b)=>a.depth-b.depth).forEach(item=>{
-      if(item.bench)drawStreetFurniture(item.bench,true);
+      if(item.bench)drawParkBench(item.bench.x,item.bench.z);
       else if(item.kiosk)drawKiosk(item.kiosk);
       else if(item.bird||item.smoke)drawAir(item,time);
       else if(item.landmark)drawWaterfrontLandmark(item.landmark,time);
@@ -822,7 +854,7 @@ function getMapTargets(audience) {
   }
   function loop(t){frame=0;if(!visible||document.hidden)return;draw(t);if(!reduced.matches)frame=requestAnimationFrame(loop);}
   function refresh(){if(!frame&&visible&&!document.hidden)frame=requestAnimationFrame(loop);}
-  function resize(){const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;width=rect.width;height=rect.height;const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);refresh();}
+  function resize(){const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;const firstSize=!width||!height;width=rect.width;height=rect.height;if(firstSize){const anchor=project(TARGET);view.panX=width*.48-anchor.x;view.panY=height*.46-anchor.y;}const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);refresh();}
   const distance=ps=>Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);
   canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('is-dragging');});
   canvas.addEventListener('pointermove',e=>{
@@ -839,7 +871,7 @@ function getMapTargets(audience) {
   ['pointerup','pointercancel','lostpointercapture'].forEach(name=>canvas.addEventListener(name,release));
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   canvas.addEventListener('wheel',e=>{e.preventDefault();view.zoom=clamp(view.zoom*Math.exp(-e.deltaY*.001),.65,2.4);refresh();},{passive:false});
-  const reset=()=>{view={...initial};const p=project(TARGET);view.panX=width*.5-p.x;view.panY=height*.48-p.y;refresh();};
+  const reset=()=>{view={...initial};const p=project(TARGET);view.panX=width*.48-p.x;view.panY=height*.46-p.y;refresh();};
   canvas.addEventListener('dblclick',reset);
   canvas.addEventListener('keydown',e=>{
     if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','0','Home'].includes(e.key))return;e.preventDefault();
