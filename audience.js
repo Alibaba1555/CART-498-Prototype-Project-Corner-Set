@@ -2629,64 +2629,59 @@ radiusSlider.addEventListener('change', () => {
   `;
   document.head.append(style);
   const groups = [
-  [
-    "01 / Go live",
-    [
-      "Pick a duration. Slide to go live.",
-      "Double-tap the timer to add 10 min.",
-      "Try Studio, Flyer, and Vinyl in Profile.",
-      "Choose Flyer. Check Night mode and lit windows."
-    ]
-  ],
-  [
-    "02 / Explore & listen",
-    [
-      "Switch to Audience. Rotate and zoom the map.",
-      "Filter by range. Tap the “2” to zoom in.",
-      "Tap a pin. Compare walk time and set time.",
-      "Open Alex’s details and play the preview.",
-      "Follow the street route to Alex. Check the connection."
-    ]
-  ],
-  [
-    "03 / Tip & save",
-    [
-      "Try tipping: cancel once, then complete a demo payment.",
-      "Save a Moment Ticket. Watch it print.",
-      "Open My Moments in your profile. View and delete the ticket.",
-      "Switch to Performer. Check the tip cards and total; try +$5."
-    ]
-  ],
-  [
-    "04 / Encore",
-    [
-      "As Audience, send two requests: with and without a song.",
-      "As Performer, browse requests. Accept one; decline the other.",
-      "Check the added time, pending count, and History."
-    ]
-  ],
-  [
-    "05 / Finish & reset",
-    [
-      "As Audience, reset your position, then walk back to reconnect.",
-      "Try offline / online and Reset other artists’ timers.",
-      "As Performer, try End set → Keep playing, then end the set.",
-      "Jump to the last 10 seconds. Let the set finish.",
-      "Reload to return to the map."
-    ]
-  ]
-];
+    ['01 / Explore the map', [
+      'Rotate the map. Find the CORNER SET sign by the court.',
+      'Look for the street music corner across from the fountain.',
+      'Zoom in on the waterfront, then reset the view.',
+      'Open Menu and try Dark mode.'
+    ]],
+    ['02 / Go live', [
+      'Choose Start live from Menu. Pick a duration and slide to start.',
+      'Double-tap the timer to add 10 minutes.',
+      'Open My profile from Menu. Try the Flyer theme.'
+    ]],
+    ['03 / Find a set', [
+      'Choose Switch to audience from Menu.',
+      'Adjust the range. Tap a group of pins to zoom in.',
+      'Tap a red pin to see the artist and walk time.',
+      'Use Walk toward performance to follow the route to Alex.',
+      'Tap the arrival message to open Alex’s set on the map.',
+      'Open About the artist and play Alex’s preview.'
+    ]],
+    ['04 / Tip & save', [
+      'Leave a demo tip.',
+      'Save this moment and watch the ticket print.',
+      'Open My Moments in your profile to find the ticket.',
+      'Switch to Performer and check your tips.'
+    ]],
+    ['05 / Encore & finish', [
+      'As Audience, ask Alex for an encore and suggest a song.',
+      'As Performer, accept the request and check the timer.',
+      'End the set and return to the map.'
+    ]]
+  ];
   const guide = document.createElement('section'); guide.className = 'test-guide'; guide.setAttribute('aria-label', 'Prototype testing checklist');
-  guide.innerHTML = '<p>Corner Set is a UI/UX project focused on interaction design, interactive prototyping, and user experience testing.</p><p>It helps street musicians share where they’re playing and lets listeners discover nearby live sets on a map.</p>';
-  const key = 'corner-set-test-checklist-v3-compact';
+  guide.innerHTML = '<p>Street musicians share where they’re playing. Listeners follow the map to a nearby set.</p>';
+  const key = 'corner-set-test-checklist-v4-waterfront';
   let checked = [];
-  try { const stored = JSON.parse(sessionStorage.getItem(key) || '[]'); if (Array.isArray(stored)) checked = stored; } catch {}
-  // Keep previous checkmarks aligned when opening the expanded checklist.
-  if (checked.length === 18) {
-    checked.splice(3, 0, false);
-    checked.splice(6, 0, false);
-    checked.push(false);
-  }
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(key) || 'null');
+    if (Array.isArray(stored)) {
+      checked = stored;
+    } else {
+      const old = JSON.parse(sessionStorage.getItem('corner-set-test-checklist-v3-compact') || '[]');
+      if (Array.isArray(old)) {
+        if (old.length === 18) {
+          old.splice(3, 0, false);
+          old.splice(6, 0, false);
+          old.push(false);
+        }
+        // Carry over completed tasks that still have the same outcome.
+        const previousSteps = [null,null,null,null,0,1,3,null,5,6,null,null,7,9,10,11,12,13,14,18];
+        checked = previousSteps.map(i => i !== null && old[i] === true);
+      }
+    }
+  } catch {}
   let index = 0;
   groups.forEach(([title, steps], groupIndex) => {
     const section = document.createElement('details'); section.open = groupIndex === 0;
