@@ -363,7 +363,7 @@ function applyTheme(theme) {
   $("meta[name='theme-color']").content = night ? "#171f29" : "#f5f7fa";
   const logo = $(".brand-logo");
   logo.classList.remove("logo-fallback");
-  logo.src = night ? "assets/LOGO Night.png" : "assets/LOGO.png";
+  logo.src = night ? "assets/LOGO-night.svg" : "assets/LOGO.svg";
   document.dispatchEvent(new Event("corner-theme-change"));
 }
 // Keep the daytime asset readable if the optional night asset is not installed yet.
@@ -371,7 +371,7 @@ $(".brand-logo").addEventListener("error", () => {
   const logo = $(".brand-logo");
   if (document.documentElement.dataset.theme === "night" && !logo.classList.contains("logo-fallback")) {
     logo.classList.add("logo-fallback");
-    logo.src = "assets/LOGO.png";
+    logo.src = "assets/LOGO.svg";
   }
 });
 $("#theme-toggle").addEventListener("click", () => {

@@ -42,6 +42,7 @@
       addBuilding(block,left,left+W*.58,near,near+34,2);
       addBuilding(block,left+W*.61,right,near,near+46,3);
       addBuilding(block,left,right,far-28,far,2);
+      BUILDINGS.at(-1).landmark = "corner-set";
       addBuilding(block,left,left+25,near+37,far-31,1);
     } else if(row===0 && col===0) {
       // Unequal narrow street lots; a larger rear warehouse.
@@ -134,6 +135,7 @@
   streetLamps.push({x:-239,z:155},{x:-316,z:322},{x:-248,z:322});
   const TARGET = [0, FLOOR * 3.5, 34]; // middle of floor 4, front facade
   const initial = {yaw:-0.58,pitch:0.46,zoom:1.12,panX:0,panY:0};
+  let defaultFraming=true;
   let view = {...initial}, width=0, height=0, visible=true, frame=0;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const pointers = new Map();
@@ -175,6 +177,69 @@
     ];
     faces.forEach(f=>{f.b=b;f.depth=f.p.reduce((s,p)=>s+project(p).depth,0)/4;});return faces;
   }
+  // Paint lettering in its vertical world plane so it turns with the roof.
+  function signText(label, x, y, z, width, height, color) {
+    const base = project([x,y,z]), right = project([x+width,y,z]);
+    const top = project([x,y+height,z]);
+    ctx.save();
+    ctx.font = 'bold 64px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    const metrics = ctx.measureText(label);
+    const cap = metrics.actualBoundingBoxAscent || 46;
+    ctx.transform((right.x-base.x)/metrics.width,(right.y-base.y)/metrics.width,
+      (base.x-top.x)/cap,(base.y-top.y)/cap,base.x,base.y);
+    ctx.fillStyle = color;
+    ctx.fillText(label,0,0);
+    ctx.restore();
+  }
+
+  function drawRoofSign(b) {
+    const y = b.floors*FLOOR, z = b.z+4;
+    const steel = night ? '#83939a' : '#849298';
+    for (const dx of [-38,0,38]) {
+      const x = b.x+dx;
+      line([[x,y,z-8],[x,y+13,z],[x,y,z]],steel,.85);
+    }
+    for (const rise of [5,12])
+      line([[b.x-44,y+rise,z],[b.x+44,y+rise,z]],steel,.65);
+    const frontFirst = project([0,0,1]).depth < project([0,0,0]).depth;
+    for (const offset of (frontFirst ? [2,1,0] : [0,1,2])) {
+      const face = offset === 2;
+      signText('CORNER SET',b.x,y+4,z+offset,91,14,
+        face ? (night ? '#ff9786' : '#b55850') : '#794846');
+    }
+  }
+
+  function nookArc(radius,height,start,end) {
+    return Array.from({length:25},(_,i)=>{
+      const angle = start+(end-start)*i/24;
+      return [23+radius*Math.cos(angle),height,278+radius*Math.sin(angle)];
+    });
+  }
+
+  function drawNookBench() {
+    const a = Math.PI*.78, b = Math.PI*1.22;
+    for (const angle of [a+.1,b-.1]) {
+      const x=23+47*Math.cos(angle), z=278+47*Math.sin(angle);
+      line([[x,-2,z],[x,3,z]],night?'#81918d':'#81958d',1.5);
+    }
+    for (const radius of [45,47,49]) {
+      polygon([...nookArc(radius,3,a,b),...nookArc(radius+1.6,3,b,a)],
+        night?'#84968c':'#adbbb0',night?'#60766d':'#899d90',.35);
+    }
+  }
+
+  function drawNookBoard() {
+    const x=44,z=250;
+    for (const dx of [-6,6])
+      line([[x+dx,-2,z-4],[x+dx,10,z],[x+dx,-2,z+3]],'#9e8c77',.9);
+    polygon([[x-7,0,z+2.5],[x+7,0,z+2.5],[x+7,10,z],[x-7,10,z]],
+      night?'#384947':'#455954','#b7a58c',.7);
+    signText('LIVE',x,5.7,z+1.4,9,2.9,'#eee9d8');
+    signText('SETS',x,1.6,z+2.5,9,2.9,'#eee9d8');
+  }
+
   function faceDetails(f) {
     if(f.side==='top') {
       const b=f.b,h=b.floors*FLOOR;
@@ -187,6 +252,7 @@
           polygon(face.p.map(([px,py,pz])=>[px,py+h,pz]),face.color,night?'#718595':'#dce3e6',.5);
         });
       }
+      if(b.landmark==='corner-set') drawRoofSign(b);
       if(b.landmark==='market') {
         // Three sawtooth bays; pale glazing faces the quieter rear street.
         for(let i=0;i<3;i++){
@@ -557,16 +623,29 @@ function getMapTargets(audience) {
       }
       solid(x,front+2,w*.82,4,8,1.6,night?'#bbaa8c':'#d7c9af');
       solid(x,z+2,w+4,d+10,21,1.8,night?'#a6b9af':'#d7e3db');
-      // Stripes sit strictly above the roof slab and never cross the service window.
-      for(let i=0;i<6;i++){
-        const l=x-(w+4)/2+(w+4)*i/6,r=l+(w+4)/6;
-        add([[l,22.82,z-d/2-3],[r,22.82,z-d/2-3],[r,22.82,front+7],[l,22.82,front+7]],
-          i%2?(night?'#becac2':'#f1f3ec'):(k.tone==='food'?'#c5a68b':'#a4bdb0'));
-      }
+      const roof=faces.find(f=>f.p.every(p=>Math.abs(p[1]-22.8)<.001));
+      if(roof)roof.roofTexture=k;
     }
-    faces.sort((a,b)=>a.depth-b.depth).forEach(f=>polygon(f.p,f.color,night?'#899ca2':'#aebfc2',.4));
+    faces.sort((a,b)=>a.depth-b.depth).forEach(f=>{
+      polygon(f.p,f.color,night?'#899ca2':'#aebfc2',.4);
+      if(f.roofTexture){
+        const {x,z,w,d,tone}=f.roofTexture;
+        for(let i=0;i<6;i++){
+          const l=x-(w+4)/2+(w+4)*i/6,r=l+(w+4)/6;
+          polygon([[l,22.8,z-d/2-3],[r,22.8,z-d/2-3],[r,22.8,z+d/2+7],[l,22.8,z+d/2+7]],
+            i%2?(night?'#becac2':'#f1f3ec'):(tone==='food'?'#c5a68b':'#a4bdb0'),null);
+        }
+        line([...f.p,f.p[0]],night?'#899ca2':'#aebfc2',.4);
+      }
+    });
   }
   function drawKiosk(k){drawStreetFurniture(k);}
+  function drawPlanter(x,z){
+    const b={x,z,w:18,d:11,floors:4/FLOOR};
+    boxFaces(b).sort((a,b)=>a.depth-b.depth).forEach(f=>polygon(f.p,
+      f.side==='top'?(night?'#5c7767':'#a8c0ab'):(night?'#617477':'#c6d3d0'),'#a1b4b3',.5));
+    for(const dx of [-5,0,5])line([[x+dx,4,z],[x+dx+1,7,z-1]],night?'#91a99a':'#87a58f',1.5);
+  }
   function drawAir(item,time) {
     if(item.smoke){
       const {x,y,z,r,alpha}=item.smoke,p=project([x,y,z]);
@@ -674,6 +753,10 @@ function getMapTargets(audience) {
     // Broad pedestrian connection leads from the park to a low timber pier.
     flat(-40,227,207,309,-2,night?'#394e4e':'#dae4dd');
     flat(66,226,86,335,-1.5,night?'#617171':'#f0f1e9');
+    polygon(nookArc(34,-1.6,Math.PI/2,Math.PI*1.5),
+      night?'#555b58':'#e8e3d6',null);
+    for(const r of [26,33])
+      line(nookArc(r,-1.5,Math.PI/2,Math.PI*1.5),night?'#73766b':'#d1cabb',.65);
     // Low railings leave the view open; a gap marks the pier entrance.
     for(const [a,b] of [[-220,58],[94,220]]) {
       line([[a,5,344],[b,5,344]],night?'#87969d':'#aab9bd',.8);
@@ -800,10 +883,16 @@ function getMapTargets(audience) {
     scene.push({landmark:'pier',depth:project([76,0,366]).depth});
     for(const [x,z] of [[-316,294],[-276,294],[133,299],[177,299]])
       scene.push({bench:{x,z},depth:project([x,0,z]).depth});
+    for(const [x,z] of [[-22,241],[23,241]])scene.push({planter:{x,z},depth:project([x,0,z]).depth});
+    scene.push({nookBench:true,depth:project([-24,0,278]).depth},
+      {nookBoard:true,depth:project([44,0,250]).depth});
     KIOSKS.forEach(kiosk=>scene.push({kiosk,depth:project([kiosk.x,0,kiosk.z]).depth}));
     scene.push({landmark:'boat',depth:project([117,0,389]).depth});
     scene.sort((a,b)=>a.depth-b.depth).forEach(item=>{
-      if(item.bench)drawParkBench(item.bench.x,item.bench.z);
+      if(item.nookBench)drawNookBench();
+      else if(item.nookBoard)drawNookBoard();
+      else if(item.planter)drawPlanter(item.planter.x,item.planter.z);
+      else if(item.bench)drawParkBench(item.bench.x,item.bench.z);
       else if(item.kiosk)drawKiosk(item.kiosk);
       else if(item.bird||item.smoke)drawAir(item,time);
       else if(item.landmark)drawWaterfrontLandmark(item.landmark,time);
@@ -854,9 +943,9 @@ function getMapTargets(audience) {
   }
   function loop(t){frame=0;if(!visible||document.hidden)return;draw(t);if(!reduced.matches)frame=requestAnimationFrame(loop);}
   function refresh(){if(!frame&&visible&&!document.hidden)frame=requestAnimationFrame(loop);}
-  function resize(){const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;const firstSize=!width||!height;width=rect.width;height=rect.height;if(firstSize){const anchor=project(TARGET);view.panX=width*.48-anchor.x;view.panY=height*.46-anchor.y;}const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);refresh();}
+  function resize(){const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;const firstSize=!width||!height;width=rect.width;height=rect.height;if(defaultFraming){view={...initial};const anchor=project(TARGET);view.panX=width*.48-anchor.x;view.panY=height*.46-anchor.y;}const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);refresh();}
   const distance=ps=>Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);
-  canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('is-dragging');});
+  canvas.addEventListener('pointerdown',e=>{defaultFraming=false;canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('is-dragging');});
   canvas.addEventListener('pointermove',e=>{
     if(!pointers.has(e.pointerId))return;
     const previous=pointers.get(e.pointerId),before=[...pointers.values()];
@@ -870,18 +959,19 @@ function getMapTargets(audience) {
   function release(e){pointers.delete(e.pointerId);if(!pointers.size)canvas.classList.remove('is-dragging');}
   ['pointerup','pointercancel','lostpointercapture'].forEach(name=>canvas.addEventListener(name,release));
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
-  canvas.addEventListener('wheel',e=>{e.preventDefault();view.zoom=clamp(view.zoom*Math.exp(-e.deltaY*.001),.65,2.4);refresh();},{passive:false});
-  const reset=()=>{view={...initial};const p=project(TARGET);view.panX=width*.48-p.x;view.panY=height*.46-p.y;refresh();};
+  canvas.addEventListener('wheel',e=>{defaultFraming=false;e.preventDefault();view.zoom=clamp(view.zoom*Math.exp(-e.deltaY*.001),.65,2.4);refresh();},{passive:false});
+  const reset=()=>{defaultFraming=true;view={...initial};const p=project(TARGET);view.panX=width*.48-p.x;view.panY=height*.46-p.y;refresh();};
   canvas.addEventListener('dblclick',reset);
   canvas.addEventListener('keydown',e=>{
     if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','0','Home'].includes(e.key))return;e.preventDefault();
+    defaultFraming=false;
     if(e.key==='ArrowLeft')view.yaw-=.12;if(e.key==='ArrowRight')view.yaw+=.12;
     if(e.key==='ArrowUp')view.pitch=clamp(view.pitch-.08,.15,1.1);if(e.key==='ArrowDown')view.pitch=clamp(view.pitch+.08,.15,1.1);
     if(e.key==='+'||e.key==='=')view.zoom=clamp(view.zoom*1.15,.65,2.4);if(e.key==='-')view.zoom=clamp(view.zoom/1.15,.65,2.4);
     if(e.key==='0'||e.key==='Home')reset();refresh();
   });
-  host.querySelector('[data-map="in"]').addEventListener('click',()=>{view.zoom=clamp(view.zoom*1.2,.65,2.4);refresh();});
-  host.querySelector('[data-map="out"]').addEventListener('click',()=>{view.zoom=clamp(view.zoom/1.2,.65,2.4);refresh();});
+  host.querySelector('[data-map="in"]').addEventListener('click',()=>{defaultFraming=false;view.zoom=clamp(view.zoom*1.2,.65,2.4);refresh();});
+  host.querySelector('[data-map="out"]').addEventListener('click',()=>{defaultFraming=false;view.zoom=clamp(view.zoom/1.2,.65,2.4);refresh();});
   host.querySelector('[data-map="reset"]').addEventListener('click',reset);
   new ResizeObserver(resize).observe(canvas);
   new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(!visible){cancelAnimationFrame(frame);frame=0;}else{resize();refresh();}}).observe(canvas);

@@ -103,29 +103,12 @@
 .arrival-arrow { margin-left:auto;font-size:23px;color:var(--accent); }
 @media(max-width:360px){.audience-detail-sheet{left:10px;right:10px;padding:16px 12px;}}
 
-/* Dedicated light header: logo, avatar and connection status share one surface. */
-:root:not([data-theme="night"]) .app.map-home-active::before {
-  content:"";
-  position:absolute;
-  z-index:10;
-  top:0;left:0;right:0;
-  height:106px;
-  background:#fff;
-  border-bottom:1px solid var(--line);
-  pointer-events:none;
+
+/* Transparent vector branding; an inset rule separates status from the map. */
+.app.map-home-active::before {
+ content:"";position:absolute;z-index:10;top:106px;left:24px;right:24px;
+ height:1px;background:var(--line);pointer-events:none;
 }
-:root:not([data-theme="night"]) .map-home-active .app-header {
-  background:#fff;
-  height:78px;
-  padding:18px 24px 12px;
-}
-:root:not([data-theme="night"]) .map-home-active .app-header .brand-logo {
-  mix-blend-mode:normal;
-}
-:root:not([data-theme="night"]) .map-home-active .mode-bar {
-  top:78px;
-  height:28px;
-  display:flex;
-  align-items:center;
-  background:#fff;
-}
+.map-home-active .app-header { background:transparent;height:78px;padding:18px 24px 12px; }
+.map-home-active .mode-bar { top:78px;height:28px;display:flex;align-items:center;background:transparent; }
+.app-header .brand-logo { mix-blend-mode:normal!important; }
