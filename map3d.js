@@ -870,9 +870,11 @@ function getMapTargets(audience) {
     }
     // One flock crosses in eight seconds, followed by a quiet interval.
     // Invisible outside the pass; reduced-motion users see no airborne movement.
-    const flightClock=(airTime+24)%34;
+    const flockInterval = 24;
+    const flockTime = airTime + flockInterval - 5;
+    const flightClock = flockTime % flockInterval;
     if(!reduced.matches && flightClock<8){
-      const pass=Math.floor((airTime+24)/34),direction=pass%2?1:-1;
+      const pass=Math.floor(flockTime / flockInterval),direction=pass%2?1:-1;
       const progress=flightClock/8;
       const random=i=>{const n=Math.sin(i*127.1+pass*311.7+19.3)*43758.5453;return n-Math.floor(n);};
       for(let i=0;i<16;i++){

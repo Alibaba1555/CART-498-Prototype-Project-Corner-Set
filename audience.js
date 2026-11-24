@@ -99,10 +99,12 @@
 
   fillMusicianProfile($('#own-musician-profile'), 'alex');
 
-  let position = { x: -76, z: 160 };
+  const startingPoint = [-148, 215]; // Street between the Corner Set sign and the court.
+  const startPosition = () => ({ x: startingPoint[0], z: startingPoint[1] });
+  let position = startPosition();
   // Street intersections, park footpath and short approaches to the venues.
   const streets = [
-    [[-76,160],[-76,54]], [[-76,54],[0,54]], [[0,54],[76,54]],
+    [startingPoint, [-76,215]], [[-76,215],[-76,54]], [[-76,54],[0,54]], [[0,54],[76,54]],
     [[-76,54],[-76,-50]], [[76,54],[76,-50]], [[-76,-50],[76,-50]],
     [[0,54],[0,50]], [[0,54],[0,113]], [[76,-50],[112,-50]],
     [[112,-50],[112,-60]], [[112,-50],[150,-50]], [[150,-50],[150,-42]]
@@ -1127,7 +1129,7 @@ radiusSlider.addEventListener('change', () => {
 
   $('#walk-reset').addEventListener('click', () => {
     stopWalk();
-    position = { x: -76, z: 160 };
+    position = startPosition();
     render();
   });
 
