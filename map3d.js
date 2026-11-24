@@ -690,7 +690,11 @@ function getMapTargets(audience) {
         .forEach(f=>polygon(f.p,f.c,night?'#8ca0ae':'#9eafb7',.4));
     }
     function paintScene(time, width, height, walker) {
-      ctx.clearRect(0,0,width,height);
+      // Clear every backing pixel, including fractional CSS-pixel edges.
+      ctx.save();
+      ctx.resetTransform();
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.restore();
       // Continuous waterfront: street -> recreation apron -> promenade -> river.
       // Open foreground preserves sightlines toward the original performance blocks.
       const flat=(x0,z0,x1,z1,y,color,edge=null)=>
@@ -970,7 +974,23 @@ function getMapTargets(audience) {
   }
   function loop(t){frame=0;if(!visible||document.hidden)return;draw(t);if(!reduced.matches)frame=requestAnimationFrame(loop);}
   function refresh(){if(!frame&&visible&&!document.hidden)frame=requestAnimationFrame(loop);}
-  function resize(){const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;const firstSize=!width||!height;width=rect.width;height=rect.height;if(defaultFraming){view={...initial};const anchor=project(TARGET);view.panX=width*.48-anchor.x;view.panY=height*.46-anchor.y;}const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);refresh();}
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    width = rect.width;
+    height = rect.height;
+    if (defaultFraming) {
+      view = {...initial};
+      const anchor = project(TARGET);
+      view.panX = width * .48 - anchor.x;
+      view.panY = height * .46 - anchor.y;
+    }
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    canvas.width = Math.max(1, Math.round(width * dpr));
+    canvas.height = Math.max(1, Math.round(height * dpr));
+    ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
+    refresh();
+  }
   const distance=ps=>Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);
   canvas.addEventListener('pointerdown',e=>{defaultFraming=false;canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('is-dragging');});
   canvas.addEventListener('pointermove',e=>{
