@@ -140,12 +140,20 @@
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const pointers = new Map();
   const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+  // Match the vertical framing of the original 390 x 720 phone preview.
+  // A wider canvas reveals more of the streets on either side.
+  const referenceHeight = 720;
+  const referenceScale = 390 / 410;
+  function worldScale() {
+    return (height / referenceHeight) * referenceScale * view.zoom;
+  }
+
   function project([x,y,z]) {
     const cx=x*Math.cos(view.yaw)-z*Math.sin(view.yaw);
     const cz=x*Math.sin(view.yaw)+z*Math.cos(view.yaw);
     const cy=(y-48)*Math.cos(view.pitch)-cz*Math.sin(view.pitch);
     const depth=(y-48)*Math.sin(view.pitch)+cz*Math.cos(view.pitch);
-    const scale=Math.min(width/410,height/440)*view.zoom;
+    const scale=worldScale();
     return {x:width/2+(cx-34*Math.sin(.58))*scale+view.panX,y:height*.51-cy*scale+view.panY,depth};
   }
   let night = document.documentElement.dataset.theme === 'night';
@@ -510,7 +518,7 @@ function getMapTargets(audience) {
   }
   function drawTree(t) {
     const base=project([t.x,0,t.z]),c=project([t.x,t.h,t.z]);
-    const scale=Math.min(width/410,height/440)*view.zoom;
+    const scale=worldScale();
     line([[t.x,0,t.z],[t.x,t.h,t.z]],night?'#7c897b':'#a8b3a8',2*scale);
     const r=t.r*scale;
     const g=ctx.createRadialGradient(c.x-r*.3,c.y-r*.35,r*.1,c.x,c.y,r);
@@ -520,7 +528,7 @@ function getMapTargets(audience) {
   }
   function drawLampPool(lamp) {
     const p = project([lamp.x, -2, lamp.z]);
-    const scale = Math.min(width/410, height/440) * view.zoom;
+    const scale = worldScale();
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.scale(scale, scale * Math.sin(view.pitch));
@@ -535,7 +543,7 @@ function getMapTargets(audience) {
   function drawStreetLamp(lamp) {
     const base = [lamp.x, 0, lamp.z], head = [lamp.x, 13, lamp.z];
     const p = project(head);
-    const scale = Math.min(width/410, height/440) * view.zoom;
+    const scale = worldScale();
     line([base, head], '#71808a', scale);
     const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 6 * scale);
     halo.addColorStop(0, '#ffdfab');
@@ -649,7 +657,7 @@ function getMapTargets(audience) {
   function drawAir(item,time) {
     if(item.smoke){
       const {x,y,z,r,alpha}=item.smoke,p=project([x,y,z]);
-      const scale=Math.min(width/410,height/440)*view.zoom;
+      const scale=worldScale();
       ctx.save();ctx.globalAlpha=alpha;
       const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*scale);
       g.addColorStop(0,night?'#c4d2db':'#b5c3cb');g.addColorStop(1,'transparent');
@@ -909,7 +917,7 @@ function getMapTargets(audience) {
       const p=project(target.point);
       for(let i=0;i<3;i++) {
         const phase=reduced.matches?(i+1)/3:((time/2600+i/3)%1);
-        const r=(10+phase*58)*Math.min(width/390,1.2)*Math.sqrt(view.zoom);
+        const r=(10+phase*58)*(height/referenceHeight)*Math.sqrt(view.zoom);
         const alpha=(1-phase)*(night?.38:.24);
         ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);
         ctx.fillStyle=`rgba(226,87,100,${alpha*.18})`;ctx.fill();
