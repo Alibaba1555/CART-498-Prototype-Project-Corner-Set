@@ -152,22 +152,21 @@
         <!-- SETUP -->
         <section id="setup" class="screen" hidden>
           <button id="back" class="text-button">← Back</button>
-          <p class="eyebrow">BROADCAST SETUP</p>
-          <h2 tabindex="-1">Set the moment.</h2>
-          <p class="muted">Your profile is ready. Just choose your time.</p>
-
-          <div class="info-card">
-            <span class="eyebrow">01 / PUBLIC AREA</span>
-            <h3>Place des Arts</h3>
-            <p class="muted">A shared area around the plaza.</p>
-            <span class="tag">APPROXIMATE LOCATION</span>
-            <p class="small muted">
-              Demo location only. 
-            </p>
-          </div>
+          <h2 class="sr-only" tabindex="-1">Set duration</h2>
+          <figure class="setup-location">
+            <figcaption>
+              <div class="setup-place">
+                <span class="eyebrow">Your location</span>
+                <strong>Place des Arts</strong>
+              </div>
+              <span class="setup-floor" aria-label="Floor 4">4F</span>
+            </figcaption>
+            <canvas id="setup-building" role="img"
+            aria-label="Performance location on the fourth floor of the highlighted building in the Place des Arts neighborhood"></canvas>
+          </figure>
 
           <fieldset>
-            <legend class="eyebrow">02 / SET DURATION</legend>
+            <legend class="eyebrow">SET DURATION</legend>
             <div class="duration-options">
               <label>
                 <input type="radio" name="duration" value="30" checked>
@@ -177,10 +176,14 @@
                 <input type="radio" name="duration" value="45">
                 <span><strong>45</strong>min</span>
               </label>
-              <label>
-                <input type="radio" name="duration" value="60">
-                <span><strong>60</strong>min</span>
-              </label>
+              <div class="custom-tile">
+                <label>
+                  <input type="radio" name="duration" value="custom">
+                  <span>Custom</span>
+                </label>
+                <input id="custom-minutes" type="number" inputmode="numeric" min="1" step="1"
+                  placeholder="Min" aria-label="Custom duration in minutes" required hidden>
+              </div>
             </div>
           </fieldset>
 
@@ -196,7 +199,6 @@
           <button id="publish" class="primary">
             Go live 
           </button>
-          <p class="footnote">Prototype only. No real alert will be sent.</p>
         </section>
 
         <!-- LIVE -->

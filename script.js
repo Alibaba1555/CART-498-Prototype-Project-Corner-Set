@@ -110,7 +110,29 @@ function finish(automatic = false, showSummary = true) {
   if (showSummary && userRole === "performer") showScreen("finished");
 }
 
+const customMinutes = $("#custom-minutes");
+const customDuration = $('input[name="duration"][value="custom"]');
+function selectedMinutes() {
+  return customDuration.checked ? customMinutes.valueAsNumber
+    : Number($('input[name="duration"]:checked').value);
+}
+function validDuration(minutes) {
+  return Number.isSafeInteger(minutes) && minutes >= 1 &&
+    Number.isSafeInteger(Date.now() + minutes * 60000);
+}
+document.querySelectorAll('input[name="duration"]').forEach(option =>
+  option.addEventListener("change", () => {
+    update();
+    if (customDuration.checked) {
+      customMinutes.focus();
+      customMinutes.select();
+    }
+  }));
+customMinutes.addEventListener("input", update);
+
 function update() {
+  customMinutes.hidden = !customDuration.checked;
+  customMinutes.disabled = !customDuration.checked;
   const offline = isOffline();
   const active = isActive();
 
@@ -123,7 +145,7 @@ function update() {
     ? "○ OFFLINE"
     : syncing ? "◌ SYNCING" : "● ONLINE";
 
-  $("#publish").disabled = offline || syncing || pendingSync;
+  $("#publish").disabled = offline || syncing || pendingSync || !validDuration(selectedMinutes());
   $("#fast-forward").disabled = !active;
   const start = $("#start");
   const startLabel = active ? "Back to live set" : "Start a set";
@@ -220,9 +242,8 @@ $("#publish").addEventListener("click", () => {
     return;
   }
 
-  const minutes = Number(
-    document.querySelector('input[name="duration"]:checked').value
-  );
+  const minutes = selectedMinutes();
+  if (!validDuration(minutes)) return;
 
   const now = Date.now();
 
